@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Malachi's Dance Crawl</title>
+  <title>Malachi's Birthday Dance Crawl</title>
   <style>
     :root {
       --bg: #050507;
@@ -610,11 +610,14 @@
     }
 
     .transfer-chev {
-      margin-right: 12px;
+      margin-right: 10px;
       color: var(--muted);
-      font-size: 18px;
+      font-size: 26px;
       font-weight: 900;
-      transition: transform 0.25s ease;
+      line-height: 1;
+      min-width: 32px;
+      text-align: center;
+      transition: transform 0.25s ease, color 0.25s ease;
       flex-shrink: 0;
     }
 
@@ -1020,6 +1023,21 @@
         padding-top: 4px;
         padding-bottom: 4px;
       }
+
+      .transfer-chev {
+        font-size: 36px;
+        min-width: 44px;
+        min-height: 44px;
+        display: grid;
+        place-items: center;
+        margin-right: 6px;
+        border-radius: 10px;
+        background: rgba(255,255,255,.04);
+      }
+
+      .transfer-details[open] .transfer-chev {
+        background: rgba(160, 92, 255, 0.12);
+      }
     }
 
     @media (max-width: 390px) {
@@ -1037,8 +1055,7 @@
 
   <script>
     const crawlData = {
-      updatedText: "Last updated just now",
-      footerText: "Hop on anywhere — friends can join at any stop.",
+      footerText: "Bring people — add whoever you want. Your job? It's to find Malachi.",
       stops: [
         {
           venue: "Brooklyn Bridge Park",
@@ -1323,18 +1340,35 @@
     function renderDemoCredit() {
       return `
         <footer class="demo-credit">
-          <p>Crawl Trails demo — an <strong>AMO</strong> project by Malachi M.</p>
-          <span class="amo-tag">AMOTE</span>
+          <p>Crawl Trails demo - an <strong>AMOTE</strong> project by NSC</p>
         </footer>
       `;
+    }
+
+    function ordinalDay(day) {
+      if (day > 3 && day < 21) return `${day}th`;
+      switch (day % 10) {
+        case 1: return `${day}st`;
+        case 2: return `${day}nd`;
+        case 3: return `${day}rd`;
+        default: return `${day}th`;
+      }
+    }
+
+    function formatUpdatedTime() {
+      const now = new Date();
+      const month = now.toLocaleString("en-US", { month: "long" });
+      const day = ordinalDay(now.getDate());
+      const time = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      return `Last updated ${month} ${day} at ${time}`;
     }
 
     function render(data) {
       const stops = data.stops;
       app.innerHTML = `
         ${renderFooter(data.footerText)}
-        <p class="updated">${escapeHtml(data.updatedText)}</p>
-        <h2 class="section-title">Crawl</h2>
+        <p class="updated">${escapeHtml(formatUpdatedTime())}</p>
+        <h2 class="section-title">Malachi's Birthday Dance Crawl</h2>
         <section class="route-list" aria-label="Dance crawl route">
           ${stops.map((stop, i) => renderStop(stop, i, stops.length) + renderTransfer(stop.transferAfter, i)).join("")}
         </section>
