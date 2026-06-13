@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NSC Public Demos</title>
+  <style>
+    :root {
+      --bg: #050507;
+      --panel: rgba(28, 31, 38, 0.92);
+      --panel-border: rgba(255, 255, 255, 0.075);
+      --text: #f6f6f7;
+      --muted: #a9a9b2;
+      --purple: #a05cff;
+      --blue: #2f8cff;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(110, 63, 255, 0.17), transparent 34%),
+        radial-gradient(circle at 100% 25%, rgba(40, 140, 255, 0.10), transparent 32%),
+        var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 48px 20px 64px;
+    }
+
+    main {
+      width: min(100%, 640px);
+    }
+
+    header {
+      margin-bottom: 40px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--purple);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      font-weight: 750;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+
+    .lede {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.55;
+      max-width: 52ch;
+    }
+
+    .demo-list {
+      display: grid;
+      gap: 14px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .demo-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .demo-card:hover,
+    .demo-card:focus-visible {
+      border-color: rgba(160, 92, 255, 0.35);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .demo-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+
+    .demo-name {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .demo-arrow {
+      color: var(--purple);
+      font-size: 1.25rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .demo-desc {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .demo-tag {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(47, 140, 255, 0.12);
+      border: 1px solid rgba(47, 140, 255, 0.22);
+      color: #8ec0ff;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    footer {
+      margin-top: 48px;
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+
+    footer a {
+      color: #c9b0ff;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Night School Club</p>
+      <h1>Public Demos</h1>
+      <p class="lede">
+        Standalone experiments and prototypes. Open any demo in your browser — no install required.
+      </p>
+    </header>
+
+    <ul class="demo-list">
+      <li>
+        <a class="demo-card" href="crawltrails/malachi_dance_crawl.html">
+          <div class="demo-card-top">
+            <h2 class="demo-name">Crawl Trails</h2>
+            <span class="demo-arrow" aria-hidden="true">›</span>
+          </div>
+          <p class="demo-desc">
+            A transit-style route for a Brooklyn dance crawl — venues as stops, colored lines, transfers, and live cars along the night.
+          </p>
+          <span class="demo-tag">HTML · Self-contained</span>
+        </a>
+      </li>
+    </ul>
+
+    <footer>
+      <p>See <a href="README.md">README.md</a> for how to run locally or add new demos.</p>
+    </footer>
+  </main>
+</body>
+</html>
