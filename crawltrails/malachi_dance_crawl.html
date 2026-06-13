@@ -259,6 +259,15 @@
       transition: letter-spacing 0.3s ease, text-shadow 0.3s ease;
     }
 
+    .crawl-date {
+      margin: 5px 0 0 4px;
+      color: #9ec0ff;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      line-height: 1.2;
+    }
+
     .route-list {
       --line-color: var(--purple);
       position: relative;
@@ -1125,6 +1134,7 @@
     const crawlData = {
       footerText: "Join the route at any station, bring whoever you want. Your job? Find Malachi and have fun!",
       lastUpdatedAt: "Last updated at June 13th, 6:38 PM",
+      crawlDate: "Saturday, June 20th, 2026",
       stops: [
         {
           venue: "Brooklyn Bridge Park",
@@ -1442,6 +1452,7 @@
         <div class="sticky-header">
           <p class="updated">${escapeHtml(data.lastUpdatedAt)}</p>
           <h2 class="section-title">Malachi's Birthday Dance Crawl</h2>
+          <p class="crawl-date">${escapeHtml(data.crawlDate)}</p>
         </div>
         <section class="route-list" aria-label="Dance crawl route">
           ${stops.map((stop, i) => renderStop(stop, i, stops.length) + renderTransfer(stop.transferAfter, i)).join("")}
