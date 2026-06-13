@@ -1,6 +1,6 @@
 # NSC Public Demos
 
-A collection of standalone demos from Night School Club. Each demo lives in its own folder and can be opened directly in a browser — no build step required.
+A collection of standalone demos from Project "Night School Club". Each demo lives in its own folder and can be opened directly in a browser — no build step required.
 
 ## Quick start
 
