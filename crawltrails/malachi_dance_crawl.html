@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Malachi's Dance Crawl</title>
   <style>
     :root {
@@ -14,24 +14,149 @@
       --purple: #a05cff;
       --blue: #2f8cff;
       --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
-      --left-time-width: 104px;
-      --rail-x: 32px;
+      --time-col-width: 72px;
+      --rail-width: 4px;
+      --node-size: 16px;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     * { box-sizing: border-box; }
 
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      14% { transform: scale(1.18); }
+      28% { transform: scale(1); }
+      42% { transform: scale(1.12); }
+      70% { transform: scale(1); }
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% {
+        box-shadow: 0 0 12px color-mix(in srgb, var(--line-color) 45%, transparent);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 22px color-mix(in srgb, var(--line-color) 75%, transparent);
+        transform: scale(1.08);
+      }
+    }
+
+    @keyframes rail-flow {
+      0% { top: 0%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(-12deg); }
+      40% { transform: rotate(10deg); }
+      60% { transform: rotate(-8deg); }
+      80% { transform: rotate(6deg); }
+    }
+
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(0deg) translateY(0); }
+      25% { transform: rotate(-2deg) translateY(-2px); }
+      75% { transform: rotate(2deg) translateY(-1px); }
+    }
+
+    @keyframes slide-in-up {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes chev-nudge {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(5px); }
+    }
+
+    @keyframes dot-ping {
+      0% { transform: scale(1); opacity: 1; }
+      70% { transform: scale(2.2); opacity: 0; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+
+    @keyframes badge-pulse {
+      0%, 100% {
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,.3), 0 0 10px color-mix(in srgb, var(--line-color) 25%, transparent);
+      }
+      50% {
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,.3), 0 0 18px color-mix(in srgb, var(--line-color) 55%, transparent);
+      }
+    }
+
+    @keyframes bg-drift {
+      0%, 100% { background-position: 0% 0%, 100% 25%; }
+      50% { background-position: 2% 1%, 98% 27%; }
+    }
+
+    @keyframes transfer-sway {
+      0%, 100% { transform: translateX(4px); }
+      50% { transform: translateX(8px); }
+    }
+
+    @keyframes time-tick {
+      0%, 100% { opacity: 0.75; }
+      50% { opacity: 1; color: #e8e8ee; }
+    }
+
+    @keyframes tap-pop {
+      0% { transform: scale(1); }
+      35% { transform: scale(0.985); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes node-breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+
     body {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
       margin: 0;
       min-height: 100vh;
       background:
         radial-gradient(circle at 50% 0%, rgba(110, 63, 255, 0.17), transparent 34%),
         radial-gradient(circle at 100% 25%, rgba(40, 140, 255, 0.10), transparent 32%),
         var(--bg);
+      background-size: 100% 100%, 100% 100%;
+      animation: bg-drift 12s ease-in-out infinite;
       color: var(--text);
       display: flex;
       justify-content: center;
       padding: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
     }
 
     .crawl-shell {
@@ -60,244 +185,386 @@
     .crawl-app {
       position: relative;
       z-index: 1;
-      padding: 24px 12px 18px;
+      padding:
+        max(20px, env(safe-area-inset-top))
+        max(14px, env(safe-area-inset-right))
+        max(28px, env(safe-area-inset-bottom))
+        max(14px, env(safe-area-inset-left));
     }
 
     .footer-note {
       display: flex;
       align-items: center;
-      margin: 0 0 18px;
-      min-height: 52px;
-      border-radius: 17px;
+      margin: 0 0 16px;
+      min-height: 48px;
+      border-radius: 16px;
       background: rgba(27,29,36,.96);
       border: 1px solid rgba(255,255,255,.08);
       padding: 8px 14px;
       gap: 12px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+      animation: slide-in-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
     }
 
-    .footer-note .globe { color: var(--purple); font-size: 29px; }
-    .footer-note p { margin: 0; flex: 1; color: #d7d7dc; font-size: 15.5px; font-weight: 650; }
-    .footer-note .heart { color: var(--purple); font-size: 31px; line-height: 1; }
+    .footer-note .globe {
+      color: var(--purple);
+      font-size: 26px;
+      animation: float 3.2s ease-in-out infinite;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .footer-note p { margin: 0; flex: 1; color: #d7d7dc; font-size: 14px; font-weight: 650; line-height: 1.35; }
+    .footer-note .heart {
+      color: var(--purple);
+      font-size: 28px;
+      line-height: 1;
+      animation: heartbeat 2.4s ease-in-out infinite;
+      transition: transform 0.2s ease;
+    }
 
     .updated {
-      margin: 0 0 15px 10px;
+      margin: 0 0 12px 4px;
       color: var(--muted);
       font-style: italic;
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 600;
+      animation: fade-in 0.6s ease both 0.1s, time-tick 4s ease-in-out infinite;
     }
 
     .section-title {
-      margin: 0 0 6px 10px;
-      font-size: 31px;
+      margin: 0 0 10px 4px;
+      font-size: 28px;
       line-height: 1;
       letter-spacing: -0.04em;
+      animation: slide-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both 0.15s;
+      transition: letter-spacing 0.3s ease, text-shadow 0.3s ease;
     }
 
     .route-list {
       --line-color: var(--purple);
       position: relative;
-      padding-bottom: 14px;
+      padding-bottom: 8px;
     }
 
+    /* ── Stop segment ── */
     .stop {
       display: grid;
-      grid-template-columns: var(--left-time-width) 1fr;
-      gap: 0;
+      grid-template-columns: var(--time-col-width) 1fr;
+      gap: 0 10px;
       position: relative;
-      min-height: 108px;
-      margin-top: 4px;
+      margin-bottom: 2px;
+      animation: slide-in-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation-delay: calc(0.12s * var(--stagger, 0) + 0.2s);
     }
 
-    .time-label {
-      padding-top: 21px;
-      padding-left: 14px;
+    .stop-content {
+      min-width: 0;
+      padding-bottom: 6px;
+    }
+
+    .is-touch .stop-content,
+    .is-touch .transfer-card {
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .stop-content:focus-visible,
+    .transfer-card:focus-visible,
+    .footer-note:focus-visible {
+      outline: 2px solid rgba(47, 140, 255, 0.55);
+      outline-offset: 3px;
+      border-radius: 12px;
+    }
+
+    .stop.is-last .rail-track {
+      padding-bottom: 0;
+    }
+
+    .stop.is-last .rail {
+      bottom: calc(var(--node-size) / 2);
+    }
+
+    /* ── Time + rail column ── */
+    .time-rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 2px;
+    }
+
+    .time-start,
+    .time-end {
+      width: 100%;
+      text-align: right;
+      padding-right: 10px;
       color: #b9b9c0;
-      font-size: 20px;
+      font-size: 15px;
       font-weight: 800;
-      letter-spacing: -0.035em;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      flex-shrink: 0;
+      transition: color 0.25s ease, transform 0.25s ease;
     }
 
-    .stop-main {
+    .time-start { margin-bottom: 6px; }
+    .time-end { margin-top: 6px; }
+
+    .rail-track {
       position: relative;
-      padding: 15px 10px 0 20px;
+      flex: 1;
+      width: 100%;
+      min-height: 56px;
+      display: flex;
+      justify-content: center;
+      padding: 4px 0 8px;
     }
 
     .rail {
       position: absolute;
-      left: calc(-1 * (var(--left-time-width) - var(--rail-x)));
-      top: 20px;
-      bottom: -28px;
-      width: 4px;
+      top: calc(var(--node-size) / 2 + 4px);
+      bottom: calc(var(--node-size) / 2 + 4px);
+      width: var(--rail-width);
       border-radius: 999px;
       background: var(--line-color);
-      box-shadow: 0 0 18px color-mix(in srgb, var(--line-color) 55%, transparent);
+      box-shadow: 0 0 14px color-mix(in srgb, var(--line-color) 50%, transparent);
+      transition: width 0.3s ease, box-shadow 0.3s ease;
+      overflow: hidden;
+    }
+
+    .rail::after {
+      content: "";
+      position: absolute;
+      left: -1px;
+      width: calc(100% + 2px);
+      height: 18px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.85), transparent);
+      animation: rail-flow 2.8s ease-in-out infinite;
+      animation-delay: calc(var(--stagger, 0) * 0.35s);
+      opacity: 0.7;
     }
 
     .node {
       position: absolute;
-      left: calc(-1 * (var(--left-time-width) - var(--rail-x)) - 7px);
-      top: 14px;
-      width: 18px;
-      height: 18px;
+      top: 4px;
+      width: var(--node-size);
+      height: var(--node-size);
       border-radius: 50%;
       background: #101014;
-      border: 4px solid var(--line-color);
-      box-shadow: 0 0 14px color-mix(in srgb, var(--line-color) 50%, transparent);
+      border: 3.5px solid var(--line-color);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--line-color) 45%, transparent);
       z-index: 2;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
 
-    .venue-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: start;
+    .node::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px solid var(--line-color);
+      opacity: 0;
+      animation: dot-ping 2.4s ease-out infinite;
+      animation-delay: calc(var(--stagger, 0) * 0.4s + 0.5s);
+    }
+
+    .node-end {
+      top: auto;
+      bottom: 4px;
+    }
+
+    .stop.is-last .node-end {
+      display: none;
+    }
+
+    .line-card {
+      margin-bottom: 10px;
+      border-radius: 14px;
+      background:
+        linear-gradient(105deg, rgba(38,41,49,.97), rgba(22,24,30,.97)),
+        linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.04) 50%, transparent 70%);
+      background-size: 100% 100%, 200% 100%;
+      border: 1px solid var(--panel-border);
+      padding: 10px 12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 10px 30px rgba(0,0,0,.23);
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.28s ease, box-shadow 0.28s ease;
+      cursor: default;
+    }
+
+    .line-title {
+      color: var(--line-color);
+      font-weight: 900;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.03em;
+      margin: 0 0 8px;
+    }
+
+    .line-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--line-color);
+      box-shadow: 0 0 10px color-mix(in srgb, var(--line-color) 50%, transparent);
+      flex-shrink: 0;
+      position: relative;
+      transition: transform 0.2s ease;
+    }
+
+    .links-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .links-row .link-pill:nth-child(2) { transition-delay: 0ms; }
+    .links-row .link-pill:nth-child(3) { transition-delay: 40ms; }
+    .links-row .link-pill:nth-child(4) { transition-delay: 80ms; }
+
+    .links-label {
+      color: #c2c3ca;
+      font-weight: 800;
+      font-size: 13px;
+      margin-right: 2px;
+    }
+
+    .link-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: clamp(44px, 14vw, 56px);
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 3px;
+      background: #8f9097;
+      color: #101014;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      text-decoration: none;
+      text-transform: uppercase;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.16);
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), filter 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .link-pill:last-child {
+      border-radius: 3px 8px 8px 3px;
+    }
+
+    .link-pill.is-live {
+      background: var(--line-color);
+      color: #0a0a0c;
+      box-shadow: 0 0 10px color-mix(in srgb, var(--line-color) 35%, transparent);
+    }
+
+    .venue-block {
+      padding-top: 2px;
+      transition: transform 0.25s ease;
     }
 
     .venue-name {
-      font-size: 24px;
-      line-height: 1.05;
+      font-size: 22px;
+      line-height: 1.1;
       font-weight: 900;
-      letter-spacing: -0.045em;
+      letter-spacing: -0.04em;
       margin: 0;
     }
 
-    .chev {
-      color: var(--blue);
-      font-weight: 900;
-      margin-left: 4px;
+    .venue-name a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s ease, text-shadow 0.2s ease;
     }
 
-    .people {
-      color: var(--purple);
-      letter-spacing: -4px;
-      font-size: 20px;
-      padding-right: 3px;
-      text-shadow: 0 0 14px rgba(160,92,255,.4);
-      white-space: nowrap;
+    .chev {
+      display: inline-block;
+      color: var(--blue);
+      font-weight: 900;
+      margin-left: 2px;
+      transition: transform 0.2s ease;
     }
 
     .time-badge {
       display: inline-block;
-      margin-top: 4px;
-      padding: 2px 8px 3px;
+      margin-top: 5px;
+      padding: 2px 7px 3px;
       border-radius: 6px;
       border: 2px solid var(--line-color);
       color: #fafafa;
-      font-size: 17px;
+      font-size: 14px;
       line-height: 1;
       font-weight: 900;
       background: rgba(0,0,0,.35);
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,.3), 0 0 12px color-mix(in srgb, var(--line-color) 28%, transparent);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.3), 0 0 10px color-mix(in srgb, var(--line-color) 25%, transparent);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      cursor: default;
     }
 
     .subtitle,
     .description {
       margin: 4px 0 0;
       color: #d4d4db;
-      font-size: 18px;
-      line-height: 1.05;
+      font-size: 15px;
+      line-height: 1.25;
       font-weight: 600;
+      transition: color 0.25s ease, transform 0.25s ease;
     }
 
-    .description { color: var(--muted); margin-top: 1px; }
+    .description { color: var(--muted); margin-top: 2px; }
 
-    .line-card {
-      margin-top: 12px;
-      border-radius: 14px;
-      background: linear-gradient(105deg, rgba(38,41,49,.97), rgba(22,24,30,.97));
-      border: 1px solid var(--panel-border);
-      min-height: 66px;
-      padding: 10px 12px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: center;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 10px 30px rgba(0,0,0,.23);
-    }
-
-    .line-title {
-      color: var(--line-color);
-      font-weight: 900;
-      font-size: 19px;
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      letter-spacing: -0.03em;
-      margin-bottom: 5px;
-    }
-
-    .line-dot {
-      width: 13px;
-      height: 13px;
-      border-radius: 50%;
-      background: var(--line-color);
-      box-shadow: 0 0 12px color-mix(in srgb, var(--line-color) 50%, transparent);
-    }
-
-    .cars-row {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      min-width: 0;
-      color: #c2c3ca;
-      font-weight: 800;
-      font-size: 16px;
-    }
-
-    .cars {
-      display: flex;
-      gap: 3px;
-      min-width: 0;
-      flex-wrap: nowrap;
-    }
-
-    .car {
-      width: clamp(18px, 6vw, 27px);
-      height: 13px;
-      border-radius: 1px;
-      background: #8f9097;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.16);
-    }
-
-    .car.live { background: var(--line-color); }
-    .car.last { border-radius: 1px 9px 9px 1px; }
-
-    .card-arrow { color: #8c8d95; font-size: 30px; font-weight: 900; }
-
+    /* ── Transfer ── */
     .transfer {
       display: grid;
-      grid-template-columns: var(--left-time-width) 1fr;
+      grid-template-columns: var(--time-col-width) 1fr;
+      gap: 0 10px;
       align-items: center;
-      margin: 8px 0 4px;
-      min-height: 58px;
+      margin: 6px 0 10px;
+      min-height: 48px;
       position: relative;
+      animation: slide-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation-delay: calc(0.12s * var(--stagger, 0) + 0.35s);
     }
 
     .transfer::before {
       content: "";
       position: absolute;
       height: 1px;
-      background: rgba(255,255,255,.22);
+      background: rgba(255,255,255,.18);
       top: 50%;
-      left: 24px;
-      width: 58px;
+      left: 8px;
+      width: calc(var(--time-col-width) - 16px);
     }
 
     .transfer-card {
-      grid-column: 2;
-      margin-left: -30px;
-      margin-right: 10px;
-      border-radius: 13px;
+      border-radius: 12px;
       background: linear-gradient(95deg, rgba(33,36,45,.96), rgba(23,25,31,.96));
       border: 1px solid rgba(255,255,255,.055);
-      min-height: 52px;
-      display: grid;
-      grid-template-columns: 48px 1fr;
-      align-items: center;
+      min-height: 48px;
       overflow: hidden;
-      box-shadow: 0 10px 24px rgba(0,0,0,.26);
+      box-shadow: 0 8px 20px rgba(0,0,0,.24);
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .transfer-head {
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      align-items: center;
+      min-height: 48px;
+    }
+
+    .transfer-summary:focus-visible .transfer-card {
+      outline: 2px solid rgba(47, 140, 255, 0.55);
+      outline-offset: 3px;
+    }
+
+    .transfer-details[open] .transfer-card {
+      border-color: rgba(160, 92, 255, 0.28);
+      box-shadow: 0 10px 28px rgba(0,0,0,.3), 0 0 16px rgba(160, 92, 255, 0.1);
     }
 
     .transfer-icon {
@@ -306,15 +573,16 @@
       place-items: center;
       background: rgba(255,255,255,.04);
       color: var(--purple);
-      font-size: 25px;
+      font-size: 22px;
       font-weight: 900;
+      transition: transform 0.2s ease;
     }
 
-    .transfer-copy { padding: 8px 12px; }
+    .transfer-copy { padding: 7px 12px; }
 
     .transfer-title {
       margin: 0;
-      font-size: 18px;
+      font-size: 15px;
       line-height: 1;
       font-weight: 900;
     }
@@ -322,21 +590,443 @@
     .transfer-text {
       margin: 3px 0 0;
       color: #aeb0b8;
-      font-size: 16px;
-      line-height: 1;
+      font-size: 13px;
+      line-height: 1.2;
       font-weight: 600;
     }
 
+    .transfer-details {
+      grid-column: 2;
+      margin: 0;
+    }
+
+    .transfer-details > summary {
+      list-style: none;
+      cursor: pointer;
+    }
+
+    .transfer-details > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .transfer-chev {
+      margin-right: 12px;
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 900;
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+    }
+
+    .transfer-details[open] .transfer-chev {
+      transform: rotate(90deg);
+      color: var(--purple);
+    }
+
+    .transfer-head .transfer-copy {
+      min-width: 0;
+    }
+
+    .transfer-options {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+      padding-left: 2px;
+    }
+
+    .transfer-option {
+      border-radius: 11px;
+      background: rgba(18, 20, 26, 0.92);
+      border: 1px solid rgba(255,255,255,.06);
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .transfer-option:active {
+      transform: scale(0.98);
+      border-color: rgba(160, 92, 255, 0.3);
+    }
+
+    .transfer-mode-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.05);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+    }
+
+    .transfer-option-label {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .transfer-option-detail {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 600;
+    }
+
+    .transfer-option-time {
+      color: #9ec0ff;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .weather-card {
+      margin-top: 10px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, rgba(47, 140, 255, 0.14), rgba(24, 185, 92, 0.08));
+      border: 1px solid rgba(47, 140, 255, 0.22);
+      padding: 10px 12px;
+    }
+
+    .weather-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .weather-day {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 800;
+      color: #9ec0ff;
+      letter-spacing: 0.02em;
+    }
+
+    .weather-temps {
+      margin: 2px 0 0;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .weather-temps span {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .weather-icon {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .weather-summary {
+      margin: 0 0 8px;
+      color: #d4d4db;
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 600;
+    }
+
+    .weather-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .demo-credit {
+      margin-top: 28px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      text-align: center;
+    }
+
+    .demo-credit p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    .demo-credit strong {
+      color: #c9b0ff;
+      font-weight: 800;
+    }
+
+    .demo-credit .amo-tag {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(160, 92, 255, 0.12);
+      border: 1px solid rgba(160, 92, 255, 0.25);
+      color: #c9b0ff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+    }
+
+    /* ── Interactive states: scroll (touch), tap, hover (desktop) ── */
+
+    .stop:is(.is-in-view, .is-tapped) .time-start,
+    .stop:is(.is-in-view, .is-tapped) .time-end {
+      color: #e4e4ea;
+      transform: translateX(-2px);
+    }
+
+    .stop:is(.is-in-view, .is-tapped) .rail {
+      width: 5px;
+      box-shadow: 0 0 24px color-mix(in srgb, var(--line-color) 70%, transparent);
+    }
+
+    .stop.is-in-view .node {
+      animation: node-breathe 2.4s ease-in-out infinite;
+    }
+
+    .stop.is-tapped .node {
+      animation: pulse-glow 1.2s ease-in-out infinite;
+    }
+
+    .stop:is(.is-in-view, .is-tapped) .line-card {
+      transform: translateY(-2px);
+      border-color: color-mix(in srgb, var(--line-color) 35%, transparent);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.1),
+        0 12px 32px rgba(0,0,0,.28),
+        0 0 16px color-mix(in srgb, var(--line-color) 18%, transparent);
+    }
+
+    .stop.is-tapped .line-card {
+      animation: shimmer 2.5s linear infinite, tap-pop 0.45s ease;
+    }
+
+    .stop:is(.is-in-view, .is-tapped) .line-dot {
+      animation: pulse-glow 1.4s ease-in-out infinite;
+    }
+
+    .stop:is(.is-in-view, .is-tapped) .venue-block {
+      transform: translateX(3px);
+    }
+
+    .stop:is(.is-in-view, .is-tapped) .time-badge {
+      transform: scale(1.03);
+      animation: badge-pulse 1.8s ease-in-out infinite;
+    }
+
+    .stop:is(.is-in-view, .is-tapped) .subtitle {
+      color: #ececf0;
+      transform: translateX(2px);
+    }
+
+    .stop.is-in-view .chev {
+      animation: chev-nudge 1.4s ease-in-out infinite;
+    }
+
+    .footer-note.is-tapped,
+    .transfer.is-tapped .transfer-card {
+      border-color: rgba(160, 92, 255, 0.35);
+    }
+
+    .footer-note.is-tapped {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 28px rgba(160, 92, 255, 0.12);
+      transform: translateY(-1px);
+      animation: tap-pop 0.45s ease;
+    }
+
+    .footer-note.is-tapped .globe {
+      animation: shake 0.5s ease-in-out;
+      filter: drop-shadow(0 0 8px rgba(160, 92, 255, 0.6));
+    }
+
+    .footer-note.is-tapped .heart {
+      animation: heartbeat 0.8s ease-in-out infinite;
+      transform: scale(1.1);
+    }
+
+    .transfer.is-tapped .transfer-card {
+      box-shadow: 0 10px 28px rgba(0,0,0,.32), 0 0 18px rgba(160, 92, 255, 0.12);
+      animation: transfer-sway 1.2s ease-in-out infinite, tap-pop 0.45s ease;
+    }
+
+    .transfer.is-tapped .transfer-icon {
+      animation: shake 0.55s ease-in-out infinite;
+    }
+
+    .link-pill:active {
+      transform: scale(0.94);
+      filter: brightness(1.15);
+      animation: shake 0.35s ease-in-out;
+    }
+
+    .venue-name a:active {
+      color: var(--blue);
+      text-shadow: 0 0 16px rgba(47, 140, 255, 0.4);
+    }
+
+    .venue-name a:active .chev {
+      animation: chev-nudge 0.6s ease-in-out infinite;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .footer-note:hover {
+        border-color: rgba(160, 92, 255, 0.35);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 28px rgba(160, 92, 255, 0.12);
+        transform: translateY(-1px);
+      }
+
+      .footer-note:hover .globe {
+        animation: shake 0.5s ease-in-out;
+        filter: drop-shadow(0 0 8px rgba(160, 92, 255, 0.6));
+      }
+
+      .footer-note:hover .heart {
+        animation: heartbeat 0.8s ease-in-out infinite;
+        transform: scale(1.1);
+      }
+
+      .section-title:hover {
+        letter-spacing: -0.02em;
+        text-shadow: 0 0 24px rgba(160, 92, 255, 0.35);
+      }
+
+      .stop:hover .time-start,
+      .stop:hover .time-end {
+        color: #e4e4ea;
+        transform: translateX(-2px);
+      }
+
+      .stop:hover .rail {
+        width: 5px;
+        box-shadow: 0 0 24px color-mix(in srgb, var(--line-color) 70%, transparent);
+      }
+
+      .stop:hover .node {
+        animation: pulse-glow 1.2s ease-in-out infinite;
+      }
+
+      .stop:hover .line-card {
+        transform: translateY(-3px) scale(1.01);
+        border-color: color-mix(in srgb, var(--line-color) 40%, transparent);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.1),
+          0 14px 36px rgba(0,0,0,.3),
+          0 0 20px color-mix(in srgb, var(--line-color) 20%, transparent);
+        animation: shimmer 2.5s linear infinite;
+      }
+
+      .stop:hover .line-dot {
+        animation: pulse-glow 1s ease-in-out infinite;
+      }
+
+      .stop:hover .venue-block {
+        transform: translateX(4px);
+      }
+
+      .stop:hover .time-badge {
+        transform: scale(1.04);
+        animation: badge-pulse 1.5s ease-in-out infinite;
+      }
+
+      .stop:hover .subtitle {
+        color: #ececf0;
+        transform: translateX(2px);
+      }
+
+      .stop:hover .chev {
+        animation: chev-nudge 0.6s ease-in-out infinite;
+      }
+
+      .link-pill:hover {
+        transform: translateY(-3px) scale(1.06);
+        animation: wiggle 0.4s ease-in-out;
+        filter: brightness(1.12);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.25),
+          0 6px 16px color-mix(in srgb, var(--line-color) 40%, transparent);
+      }
+
+      .links-row .link-pill:hover:nth-child(2) { animation-delay: 0ms; }
+      .links-row .link-pill:hover:nth-child(3) { animation-delay: 60ms; }
+      .links-row .link-pill:hover:nth-child(4) { animation-delay: 120ms; }
+
+      .venue-name a:hover,
+      .venue-name a:focus-visible {
+        color: var(--blue);
+        text-shadow: 0 0 16px rgba(47, 140, 255, 0.4);
+        outline: none;
+      }
+
+      .venue-name a:hover .chev,
+      .venue-name a:focus-visible .chev {
+        animation: chev-nudge 0.6s ease-in-out infinite;
+      }
+
+      .transfer-card:hover {
+        border-color: rgba(160, 92, 255, 0.3);
+        box-shadow: 0 10px 28px rgba(0,0,0,.32), 0 0 18px rgba(160, 92, 255, 0.12);
+        animation: transfer-sway 1.2s ease-in-out infinite;
+      }
+
+      .transfer-details > summary:hover .transfer-card {
+        border-color: rgba(160, 92, 255, 0.3);
+        box-shadow: 0 10px 28px rgba(0,0,0,.32), 0 0 18px rgba(160, 92, 255, 0.12);
+        animation: transfer-sway 1.2s ease-in-out infinite;
+      }
+
+      .transfer-details > summary:hover .transfer-icon {
+        animation: shake 0.55s ease-in-out infinite;
+      }
+
+      .transfer-option:hover {
+        border-color: rgba(47, 140, 255, 0.28);
+        transform: translateX(3px);
+      }
+
+      .transfer-card:hover .transfer-icon {
+        animation: shake 0.55s ease-in-out infinite;
+      }
+    }
+
+    @media (hover: none), (pointer: coarse) {
+      .link-pill {
+        min-height: 44px;
+        min-width: 52px;
+        height: auto;
+        padding: 10px 12px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+
+      .link-pill:last-child {
+        border-radius: 6px 10px 10px 6px;
+      }
+
+      .venue-name a {
+        padding: 4px 0;
+      }
+
+      .stop-content,
+      .transfer-card {
+        padding-top: 4px;
+        padding-bottom: 4px;
+      }
+    }
+
     @media (max-width: 390px) {
-      :root { --left-time-width: 92px; --rail-x: 29px; }
-      .crawl-app { padding-left: 8px; padding-right: 8px; }
-      .venue-name { font-size: 21px; }
-      .time-badge { font-size: 15px; }
-      .subtitle, .description { font-size: 16px; }
-      .time-label { font-size: 18px; padding-left: 10px; }
-      .line-title { font-size: 17px; }
-      .cars-row { font-size: 14px; gap: 4px; }
-      .footer-note p { font-size: 14px; }
+      :root { --time-col-width: 64px; }
+      .venue-name { font-size: 19px; }
+      .time-start, .time-end { font-size: 14px; padding-right: 8px; }
+      .line-title { font-size: 15px; }
     }
   </style>
 </head>
@@ -353,66 +1043,133 @@
         {
           venue: "Brooklyn Bridge Park",
           startTime: "3:00 PM",
+          endTime: "6:00 PM",
           timeRange: "3:00 PM–6:00 PM",
-          subtitle: "Park + chill",
-          description: "Anyone can join here",
+          subtitle: "Malachi's favorite park",
+          description: "Park + chill — anyone can join here",
           lineName: "Park Line",
-          carsLabel: "8 cars",
-          liveCars: 7,
-          totalCars: 9,
           color: "#18b95c",
-          transferAfter: { title: "Transfer", text: "Join the crawl at any stop" }
+          links: [
+            { label: "Maps", url: "https://maps.app.goo.gl/vbE9tUQTgvKsMxYw8" }
+          ],
+          weather: {
+            day: "Sat 20",
+            high: "85°",
+            low: "67°",
+            precip: "4%",
+            wind: "W 11 mph",
+            summary: "A mainly sunny sky. High around 85°F. Winds W at 10 to 15 mph.",
+            humidity: "44%",
+            uv: "9 of 11",
+            sunrise: "5:25 am",
+            sunset: "8:30 pm"
+          },
+          transferAfter: {
+            title: "Transfer",
+            text: "Bike + walk to dinner",
+            options: [
+              {
+                icon: "🚲",
+                label: "Bike",
+                detail: "Brooklyn Bridge Park → past the Manhattan Bridge",
+                duration: "~15 min"
+              },
+              {
+                icon: "🚶",
+                label: "Walk",
+                detail: "From the bridge area to LaoJie Hotpot",
+                duration: "~12 min"
+              }
+            ]
+          }
         },
         {
-          venue: "Hot Pot",
+          venue: "LaoJie Hotpot",
           startTime: "6:00 PM",
+          endTime: "8:00 PM",
           timeRange: "6:00 PM–8:00 PM",
           subtitle: "Dinner stop",
           description: "Fuel up before the night",
           lineName: "Broth Line",
-          carsLabel: "6 cars",
-          liveCars: 4,
-          totalCars: 8,
           color: "#ff512f",
-          transferAfter: { title: "Transfer", text: "Roll into pregame" }
+          links: [
+            { label: "Maps", url: "https://maps.app.goo.gl/ovo2ieVGDESFCEbv9" },
+            { label: "Food", url: "https://www.instagram.com/laojiehotpot?igshid=YmMyMTA2M2Y%3D" }
+          ],
+          transferAfter: {
+            title: "Transfer",
+            text: "Roll into pregame",
+            options: [
+              { icon: "🚇", label: "Train", detail: "F/G to Bergen St, short walk to Berlin", duration: "~12 min" },
+              { icon: "🚗", label: "Uber", detail: "Direct ride through Brooklyn", duration: "~8 min" },
+              { icon: "🚌", label: "Bus", detail: "B62 toward downtown Brooklyn", duration: "~18 min" }
+            ]
+          }
         },
         {
           venue: "Berlin",
           startTime: "8:00 PM",
+          endTime: "9:30 PM",
           timeRange: "8:00 PM–9:30 PM",
           subtitle: "Pregame",
           description: "Live music bar",
           lineName: "Berlin Line",
-          carsLabel: "7 cars",
-          liveCars: 3,
-          totalCars: 7,
           color: "#f3c319",
-          transferAfter: { title: "Transfer", text: "Dance crawl continues" }
+          links: [
+            { label: "Maps", url: "https://maps.app.goo.gl/Kkj4VXxmhcQdbFKj6" },
+            { label: "Tickets", url: "https://www.ticketweb.com/event/eli-yacinthe-band-sauteed-berlin-tickets/14955283?utm_medium=affiliate&utm_source=5128861-Google%20Events&source=ev" },
+            { label: "Music", url: "https://open.spotify.com/playlist/37i9dQZF1E4zeGqZDtAx0k?si=9f956cda086c4bce" }
+          ],
+          transferAfter: {
+            title: "Transfer",
+            text: "Dance crawl continues",
+            options: [
+              { icon: "🚇", label: "Train", detail: "G train toward Greenpoint", duration: "~10 min" },
+              { icon: "🚗", label: "Uber", detail: "Quick hop to Good Room", duration: "~7 min" },
+              { icon: "🚌", label: "Bus", detail: "B43 north through Williamsburg", duration: "~16 min" }
+            ]
+          }
         },
         {
           venue: "Good Room",
           startTime: "10:00 PM",
+          endTime: "12:30 AM",
           timeRange: "10:00 PM–12:30 AM",
           subtitle: "Dance floor",
           description: "Brooklyn",
           lineName: "Good Room Line",
-          carsLabel: "6 cars",
-          liveCars: 3,
-          totalCars: 7,
           color: "#2f8cff",
-          transferAfter: { title: "Transfer", text: "Late-night connection" }
+          links: [
+            { label: "Maps", url: "https://maps.app.goo.gl/6XXZtnRDJyGABu6P7" },
+            { label: "Tickets", url: "https://ra.co/events/2405918" },
+            { label: "Site", url: "http://www.goodroombk.com/" },
+            { label: "Music", url: "https://open.spotify.com/playlist/37i9dQZF1DZ06evO20D31M?si=b5ab321c1f5a4c70" }
+          ],
+          transferAfter: {
+            title: "Transfer",
+            text: "Late-night connection",
+            options: [
+              { icon: "🚇", label: "Train", detail: "L train to Jefferson St, walk to Bushwick", duration: "~14 min" },
+              { icon: "🚗", label: "Uber", detail: "Ride up to Market Hotel", duration: "~9 min" },
+              { icon: "🚌", label: "Bus", detail: "B60 toward Bushwick Ave", duration: "~22 min" }
+            ]
+          }
         },
         {
           venue: "Market Hotel",
           startTime: "1:00 AM",
+          endTime: "4:00 AM",
           timeRange: "1:00 AM–4:00 AM",
           subtitle: "Final stop",
-          description: "Brooklyn",
+          description: "The Recession Pop Party — Brooklyn",
           lineName: "After Hours Line",
-          carsLabel: "5 cars",
-          liveCars: 4,
-          totalCars: 6,
-          color: "#9b55ff"
+          color: "#9b55ff",
+          links: [
+            { label: "Maps", url: "https://maps.app.goo.gl/MZ6TFynnfQaUN1tT6" },
+            { label: "Tickets", url: "https://tickets.venuepilot.com/e/the-recession-pop-party-2026-06-20-market-hotel-1140-myrtle-ave-brooklyn-nyc-ny-bushwick-brooklyn-new-3e48d6" },
+            { label: "Site", url: "https://www.markethotel.org/calendar#/events/184989" },
+            { label: "Music", url: "https://open.spotify.com/playlist/2tX2iPCGNqe0K976MnzJ1k?si=8cc24b889b5e4a69" }
+          ]
         }
       ]
     };
@@ -428,20 +1185,110 @@
         .replaceAll("'", "&#039;");
     }
 
-    function makeCars(stop) {
-      const total = stop.totalCars || 6;
-      const live = stop.liveCars || 0;
-      return Array.from({ length: total }, (_, index) => {
-        const classes = ["car"];
-        if (index < live) classes.push("live");
-        if (index === total - 1) classes.push("last");
-        return `<span class="${classes.join(" ")}" aria-hidden="true"></span>`;
-      }).join("");
+    function renderWeather(weather) {
+      if (!weather) return "";
+      return `
+        <div class="weather-card" aria-label="Weather forecast">
+          <div class="weather-top">
+            <div>
+              <p class="weather-day">${escapeHtml(weather.day)} · ${escapeHtml(weather.precip)} rain</p>
+              <p class="weather-temps">${escapeHtml(weather.high)} <span>${escapeHtml(weather.low)}</span></p>
+            </div>
+            <span class="weather-icon" aria-hidden="true">☀️</span>
+          </div>
+          <p class="weather-summary">${escapeHtml(weather.summary)}</p>
+          <div class="weather-meta">
+            <span>${escapeHtml(weather.wind)}</span>
+            <span>Humidity ${escapeHtml(weather.humidity)}</span>
+            <span>UV ${escapeHtml(weather.uv)}</span>
+            <span>↑ ${escapeHtml(weather.sunrise)}</span>
+            <span>↓ ${escapeHtml(weather.sunset)}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTransferOptions(options) {
+      if (!options?.length) return "";
+      return `
+        <div class="transfer-options">
+          ${options.map((option) => `
+            <div class="transfer-option">
+              <span class="transfer-mode-icon" aria-hidden="true">${escapeHtml(option.icon)}</span>
+              <div>
+                <p class="transfer-option-label">${escapeHtml(option.label)}</p>
+                <p class="transfer-option-detail">${escapeHtml(option.detail)}</p>
+              </div>
+              <span class="transfer-option-time">${escapeHtml(option.duration)}</span>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderLinks(stop) {
+      const links = stop.links || [];
+      if (!links.length) return "";
+      const count = links.length;
+      return `
+        <div class="links-row">
+          <span class="links-label">${count} link${count === 1 ? "" : "s"}</span>
+          ${links.map(link => `
+            <a
+              class="link-pill is-live"
+              href="${escapeHtml(link.url)}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >${escapeHtml(link.label)}</a>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderLineCard(stop) {
+      return `
+        <div class="line-card">
+          <p class="line-title"><span class="line-dot"></span>${escapeHtml(stop.lineName)}</p>
+          ${renderLinks(stop)}
+        </div>
+      `;
+    }
+
+    function renderStop(stop, index, total) {
+      const isLast = index === total - 1;
+      const mapsUrl = (stop.links || []).find(l => l.label === "Maps")?.url || "#";
+      return `
+        <article class="stop${isLast ? " is-last" : ""}" style="--line-color: ${escapeHtml(stop.color)}; --stagger: ${index}">
+          <div class="time-rail" aria-hidden="true">
+            <div class="time-start">${escapeHtml(stop.startTime)}</div>
+            <div class="rail-track">
+              <span class="rail"></span>
+              <span class="node"></span>
+              <span class="node node-end"></span>
+            </div>
+            <div class="time-end">${escapeHtml(stop.endTime)}</div>
+          </div>
+          <div class="stop-content" tabindex="0" role="group" aria-label="${escapeHtml(stop.venue)} stop">
+            ${renderLineCard(stop)}
+            <div class="venue-block">
+              <h3 class="venue-name">
+                <a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer">
+                  ${escapeHtml(stop.venue)}<span class="chev">›</span>
+                </a>
+              </h3>
+              <span class="time-badge">${escapeHtml(stop.timeRange)}</span>
+              <p class="subtitle">${escapeHtml(stop.subtitle)}</p>
+              <p class="description">${escapeHtml(stop.description)}</p>
+              ${renderWeather(stop.weather)}
+            </div>
+          </div>
+        </article>
+      `;
     }
 
     function renderFooter(text) {
       return `
-        <aside class="footer-note">
+        <aside class="footer-note" tabindex="0" role="note">
           <span class="globe" aria-hidden="true">◉</span>
           <p>${escapeHtml(text)}</p>
           <span class="heart" aria-hidden="true">♡</span>
@@ -449,67 +1296,128 @@
       `;
     }
 
-    function renderLineCard(stop) {
-      return `
-        <div class="line-card">
-          <div>
-            <div class="line-title"><span class="line-dot"></span>${escapeHtml(stop.lineName)}</div>
-            <div class="cars-row"><span>${escapeHtml(stop.carsLabel)}</span><span class="cars">${makeCars(stop)}</span></div>
-          </div>
-          <div class="card-arrow" aria-hidden="true">»</div>
-        </div>
-      `;
-    }
-
-    function renderStop(stop) {
-      return `
-        <article class="stop" style="--line-color: ${escapeHtml(stop.color)}">
-          <div class="time-label">${escapeHtml(stop.startTime)}</div>
-          <div class="stop-main">
-            <span class="rail" aria-hidden="true"></span>
-            <span class="node" aria-hidden="true"></span>
-            <div class="venue-row">
-              <div>
-                <h3 class="venue-name">${escapeHtml(stop.venue)} <span class="chev">›</span></h3>
-                <span class="time-badge">${escapeHtml(stop.timeRange)}</span>
-                <p class="subtitle">${escapeHtml(stop.subtitle)}</p>
-                <p class="description">${escapeHtml(stop.description)}</p>
-              </div>
-              <div class="people" aria-label="friends can join">♟♟♟♟</div>
-            </div>
-            ${renderLineCard(stop)}
-          </div>
-        </article>
-      `;
-    }
-
-    function renderTransfer(transfer) {
+    function renderTransfer(transfer, stagger) {
       if (!transfer) return "";
+      const optionCount = transfer.options?.length || 0;
       return `
-        <div class="transfer">
-          <div class="transfer-card">
-            <div class="transfer-icon" aria-hidden="true">⇄</div>
-            <div class="transfer-copy">
-              <p class="transfer-title">${escapeHtml(transfer.title)}</p>
-              <p class="transfer-text">${escapeHtml(transfer.text)}</p>
-            </div>
-          </div>
+        <div class="transfer" style="--stagger: ${stagger}">
+          <details class="transfer-details">
+            <summary class="transfer-summary" aria-label="${escapeHtml(transfer.title)} — ${optionCount} options">
+              <div class="transfer-card">
+                <div class="transfer-head">
+                  <div class="transfer-icon" aria-hidden="true">⇄</div>
+                  <div class="transfer-copy">
+                    <p class="transfer-title">${escapeHtml(transfer.title)}</p>
+                    <p class="transfer-text">${escapeHtml(transfer.text)}</p>
+                  </div>
+                  <span class="transfer-chev" aria-hidden="true">›</span>
+                </div>
+              </div>
+            </summary>
+            ${renderTransferOptions(transfer.options)}
+          </details>
         </div>
+      `;
+    }
+
+    function renderDemoCredit() {
+      return `
+        <footer class="demo-credit">
+          <p>Crawl Trails demo — an <strong>AMO</strong> project by Malachi M.</p>
+          <span class="amo-tag">AMOTE</span>
+        </footer>
       `;
     }
 
     function render(data) {
+      const stops = data.stops;
       app.innerHTML = `
         ${renderFooter(data.footerText)}
         <p class="updated">${escapeHtml(data.updatedText)}</p>
         <h2 class="section-title">Crawl</h2>
         <section class="route-list" aria-label="Dance crawl route">
-          ${data.stops.map(stop => renderStop(stop) + renderTransfer(stop.transferAfter)).join("")}
+          ${stops.map((stop, i) => renderStop(stop, i, stops.length) + renderTransfer(stop.transferAfter, i)).join("")}
         </section>
+        ${renderDemoCredit()}
       `;
     }
 
     render(crawlData);
+    setupMobileInteractions();
+
+    function setupMobileInteractions() {
+      const touchQuery = window.matchMedia("(hover: none), (pointer: coarse)");
+      let scrollObserver = null;
+
+      const observeStops = () => {
+        if (scrollObserver) {
+          scrollObserver.disconnect();
+          scrollObserver = null;
+        }
+        app.querySelectorAll(".stop").forEach((stop) => stop.classList.remove("is-in-view"));
+
+        if (!touchQuery.matches) return;
+
+        scrollObserver = new IntersectionObserver(
+          (entries) => {
+            entries.forEach(({ target, isIntersecting, intersectionRatio }) => {
+              target.classList.toggle("is-in-view", isIntersecting && intersectionRatio >= 0.4);
+            });
+          },
+          { root: null, rootMargin: "-18% 0px -18% 0px", threshold: [0, 0.4, 0.55, 0.7] }
+        );
+        app.querySelectorAll(".stop").forEach((stop) => scrollObserver.observe(stop));
+      };
+
+      const applyTouchClass = () => {
+        document.body.classList.toggle("is-touch", touchQuery.matches);
+        observeStops();
+      };
+
+      applyTouchClass();
+      touchQuery.addEventListener("change", applyTouchClass);
+
+      const tapTimers = new WeakMap();
+
+      function flashTap(target) {
+        app.querySelectorAll(".is-tapped").forEach((el) => {
+          if (el !== target) el.classList.remove("is-tapped");
+        });
+        target.classList.add("is-tapped");
+        const prev = tapTimers.get(target);
+        if (prev) clearTimeout(prev);
+        tapTimers.set(
+          target,
+          setTimeout(() => target.classList.remove("is-tapped"), 1400)
+        );
+      }
+
+      app.addEventListener("click", (event) => {
+        if (event.target.closest("a")) return;
+        if (event.target.closest("summary.transfer-summary")) return;
+
+        const stop = event.target.closest(".stop");
+        const transfer = event.target.closest(".transfer");
+        const footer = event.target.closest(".footer-note");
+        const target = stop || transfer || footer;
+
+        if (!target) {
+          app.querySelectorAll(".is-tapped").forEach((el) => el.classList.remove("is-tapped"));
+          return;
+        }
+
+        flashTap(target);
+      });
+
+      app.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        const focusable = event.target.closest(".stop-content, .footer-note");
+        if (!focusable) return;
+        event.preventDefault();
+        const target = focusable.closest(".stop, .transfer, .footer-note");
+        if (target) flashTap(target);
+      });
+    }
   </script>
 </body>
 </html>
