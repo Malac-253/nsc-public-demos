@@ -166,7 +166,7 @@
         linear-gradient(180deg, rgba(255,255,255,0.025), transparent 20%),
         rgba(0,0,0,0.45);
       position: relative;
-      overflow: hidden;
+      overflow-x: clip;
       box-shadow: var(--shadow);
     }
 
@@ -224,7 +224,7 @@
     }
 
     .updated {
-      margin: 0 0 12px 4px;
+      margin: 0 0 8px 4px;
       color: var(--muted);
       font-style: italic;
       font-size: 14px;
@@ -232,10 +232,28 @@
       animation: fade-in 0.6s ease both 0.1s, time-tick 4s ease-in-out infinite;
     }
 
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      margin: 0 -14px 10px;
+      padding:
+        10px
+        max(14px, env(safe-area-inset-right))
+        12px
+        max(14px, env(safe-area-inset-left));
+      padding-top: max(10px, env(safe-area-inset-top));
+      background: rgba(5, 5, 7, 0.94);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
     .section-title {
-      margin: 0 0 10px 4px;
+      margin: 0 0 0 4px;
       font-size: 28px;
-      line-height: 1;
+      line-height: 1.1;
       letter-spacing: -0.04em;
       animation: slide-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both 0.15s;
       transition: letter-spacing 0.3s ease, text-shadow 0.3s ease;
@@ -278,12 +296,8 @@
       border-radius: 12px;
     }
 
-    .stop.is-last .rail-track {
-      padding-bottom: 0;
-    }
-
     .stop.is-last .rail {
-      bottom: calc(var(--node-size) / 2);
+      bottom: calc(var(--node-size) / 2 + 4px);
     }
 
     /* ── Time + rail column ── */
@@ -373,10 +387,6 @@
     .node-end {
       top: auto;
       bottom: 4px;
-    }
-
-    .stop.is-last .node-end {
-      display: none;
     }
 
     .line-card {
@@ -481,13 +491,25 @@
       transition: color 0.2s ease, text-shadow 0.2s ease;
     }
 
+    .chevs {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      margin-left: 4px;
+      vertical-align: baseline;
+    }
+
     .chev {
       display: inline-block;
       color: var(--blue);
       font-weight: 900;
-      margin-left: 2px;
+      line-height: 1;
       transition: transform 0.2s ease;
     }
+
+    .chevs .chev:nth-child(1) { animation-delay: 0s; }
+    .chevs .chev:nth-child(2) { animation-delay: 0.1s; }
+    .chevs .chev:nth-child(3) { animation-delay: 0.2s; }
 
     .time-badge {
       display: inline-block;
@@ -702,6 +724,41 @@
       margin-bottom: 6px;
     }
 
+    .weather-day-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .weather-unit-toggle {
+      display: inline-flex;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
+
+    .weather-unit {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 8px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .weather-unit.is-active {
+      background: rgba(47, 140, 255, 0.28);
+      color: #d8ebff;
+    }
+
+    .weather-unit:active {
+      transform: scale(0.96);
+    }
+
     .weather-day {
       margin: 0;
       font-size: 13px;
@@ -718,10 +775,20 @@
       line-height: 1;
     }
 
-    .weather-temps span {
+    .weather-temps .weather-high {
+      color: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+    }
+
+    .weather-temps .weather-low {
       color: var(--muted);
       font-size: 14px;
       font-weight: 700;
+    }
+
+    .weather-temps .weather-low::before {
+      content: " ";
     }
 
     .weather-icon {
@@ -831,7 +898,7 @@
       transform: translateX(2px);
     }
 
-    .stop.is-in-view .chev {
+    .stop.is-in-view .chevs .chev {
       animation: chev-nudge 1.4s ease-in-out infinite;
     }
 
@@ -876,7 +943,7 @@
       text-shadow: 0 0 16px rgba(47, 140, 255, 0.4);
     }
 
-    .venue-name a:active .chev {
+    .venue-name a:active .chevs .chev {
       animation: chev-nudge 0.6s ease-in-out infinite;
     }
 
@@ -945,7 +1012,7 @@
         transform: translateX(2px);
       }
 
-      .stop:hover .chev {
+      .stop:hover .chevs .chev {
         animation: chev-nudge 0.6s ease-in-out infinite;
       }
 
@@ -969,8 +1036,8 @@
         outline: none;
       }
 
-      .venue-name a:hover .chev,
-      .venue-name a:focus-visible .chev {
+      .venue-name a:hover .chevs .chev,
+      .venue-name a:focus-visible .chevs .chev {
         animation: chev-nudge 0.6s ease-in-out infinite;
       }
 
@@ -1042,6 +1109,7 @@
 
     @media (max-width: 390px) {
       :root { --time-col-width: 64px; }
+      .sticky-header { margin-left: -10px; margin-right: -10px; }
       .venue-name { font-size: 19px; }
       .time-start, .time-end { font-size: 14px; padding-right: 8px; }
       .line-title { font-size: 15px; }
@@ -1056,7 +1124,7 @@
   <script>
     const crawlData = {
       footerText: "Join the route at any station, bring whoever you want. Your job? Find Malachi and have fun!",
-      lastUpdatedAt: "Last updated at June 13th, 5:57 PM",
+      lastUpdatedAt: "Last updated at June 13th, 6:38 PM",
       stops: [
         {
           venue: "Brooklyn Bridge Park",
@@ -1072,11 +1140,12 @@
           ],
           weather: {
             day: "Sat 20",
-            high: "85°",
-            low: "67°",
+            highF: 85,
+            lowF: 67,
             precip: "4%",
             wind: "W 11 mph",
-            summary: "A mainly sunny sky. High around 85°F. Winds W at 10 to 15 mph.",
+            summaryF: "A mainly sunny sky. High around 85°F. Winds W at 10 to 15 mph.",
+            summaryC: "A mainly sunny sky. High around 29°C. Winds W at 10 to 15 mph.",
             humidity: "44%",
             uv: "9 of 11",
             sunrise: "5:25 am",
@@ -1206,15 +1275,31 @@
     function renderWeather(weather) {
       if (!weather) return "";
       return `
-        <div class="weather-card" aria-label="Weather forecast">
+        <div
+          class="weather-card"
+          aria-label="Weather forecast"
+          data-high-f="${weather.highF}"
+          data-low-f="${weather.lowF}"
+          data-summary-f="${escapeHtml(weather.summaryF)}"
+          data-summary-c="${escapeHtml(weather.summaryC)}"
+        >
           <div class="weather-top">
             <div>
-              <p class="weather-day">${escapeHtml(weather.day)} · ${escapeHtml(weather.precip)} rain</p>
-              <p class="weather-temps">${escapeHtml(weather.high)} <span>${escapeHtml(weather.low)}</span></p>
+              <div class="weather-day-row">
+                <p class="weather-day">${escapeHtml(weather.day)} · ${escapeHtml(weather.precip)} rain</p>
+                <div class="weather-unit-toggle" role="group" aria-label="Temperature unit">
+                  <button type="button" class="weather-unit is-active" data-unit="F">°F</button>
+                  <button type="button" class="weather-unit" data-unit="C">°C</button>
+                </div>
+              </div>
+              <p class="weather-temps">
+                <span class="weather-high">${weather.highF}°</span>
+                <span class="weather-low">${weather.lowF}°</span>
+              </p>
             </div>
             <span class="weather-icon" aria-hidden="true">☀️</span>
           </div>
-          <p class="weather-summary">${escapeHtml(weather.summary)}</p>
+          <p class="weather-summary">${escapeHtml(weather.summaryF)}</p>
           <div class="weather-meta">
             <span>${escapeHtml(weather.wind)}</span>
             <span>Humidity ${escapeHtml(weather.humidity)}</span>
@@ -1263,6 +1348,10 @@
       `;
     }
 
+    function renderChevs() {
+      return `<span class="chevs" aria-hidden="true"><span class="chev">›</span><span class="chev">›</span><span class="chev">›</span></span>`;
+    }
+
     function renderLineCard(stop) {
       return `
         <div class="line-card">
@@ -1291,7 +1380,7 @@
             <div class="venue-block">
               <h3 class="venue-name">
                 <a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer">
-                  ${escapeHtml(stop.venue)}<span class="chev">›</span>
+                  ${escapeHtml(stop.venue)}${renderChevs()}
                 </a>
               </h3>
               <span class="time-badge">${escapeHtml(stop.timeRange)}</span>
@@ -1350,8 +1439,10 @@
       const stops = data.stops;
       app.innerHTML = `
         ${renderFooter(data.footerText)}
-        <p class="updated">${escapeHtml(data.lastUpdatedAt)}</p>
-        <h2 class="section-title">Malachi's Birthday Dance Crawl</h2>
+        <div class="sticky-header">
+          <p class="updated">${escapeHtml(data.lastUpdatedAt)}</p>
+          <h2 class="section-title">Malachi's Birthday Dance Crawl</h2>
+        </div>
         <section class="route-list" aria-label="Dance crawl route">
           ${stops.map((stop, i) => renderStop(stop, i, stops.length) + renderTransfer(stop.transferAfter, i)).join("")}
         </section>
@@ -1360,7 +1451,49 @@
     }
 
     render(crawlData);
+    setupWeatherToggle();
     setupMobileInteractions();
+
+    function setupWeatherToggle() {
+      const card = app.querySelector(".weather-card");
+      if (!card) return;
+
+      const highF = Number(card.dataset.highF);
+      const lowF = Number(card.dataset.lowF);
+
+      function formatTemp(fahrenheit, unit) {
+        if (unit === "C") return `${Math.round((fahrenheit - 32) * 5 / 9)}°`;
+        return `${fahrenheit}°`;
+      }
+
+      function applyUnit(unit) {
+        card.querySelectorAll(".weather-unit").forEach((btn) => {
+          btn.classList.toggle("is-active", btn.dataset.unit === unit);
+          btn.setAttribute("aria-pressed", btn.dataset.unit === unit ? "true" : "false");
+        });
+        card.querySelector(".weather-high").textContent = formatTemp(highF, unit);
+        card.querySelector(".weather-low").textContent = formatTemp(lowF, unit);
+        card.querySelector(".weather-summary").textContent =
+          unit === "C" ? card.dataset.summaryC : card.dataset.summaryF;
+        try {
+          localStorage.setItem("weatherUnit", unit);
+        } catch (_) {}
+      }
+
+      card.querySelectorAll(".weather-unit").forEach((btn) => {
+        btn.setAttribute("aria-pressed", btn.classList.contains("is-active") ? "true" : "false");
+        btn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          applyUnit(btn.dataset.unit);
+        });
+      });
+
+      let saved = "F";
+      try {
+        saved = localStorage.getItem("weatherUnit") || "F";
+      } catch (_) {}
+      applyUnit(saved === "C" ? "C" : "F");
+    }
 
     function setupMobileInteractions() {
       const touchQuery = window.matchMedia("(hover: none), (pointer: coarse)");
@@ -1411,6 +1544,7 @@
 
       app.addEventListener("click", (event) => {
         if (event.target.closest("a")) return;
+        if (event.target.closest(".weather-unit")) return;
         if (event.target.closest("summary.transfer-summary")) return;
 
         const stop = event.target.closest(".stop");
