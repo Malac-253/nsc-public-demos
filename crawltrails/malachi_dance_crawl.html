@@ -1056,6 +1056,7 @@
   <script>
     const crawlData = {
       footerText: "Join the route at any station, bring whoever you want. Your job? Find Malachi and have fun!",
+      lastUpdatedAt: "Last updated at June 13th, 5:57 PM",
       stops: [
         {
           venue: "Brooklyn Bridge Park",
@@ -1345,29 +1346,11 @@
       `;
     }
 
-    function ordinalDay(day) {
-      if (day > 3 && day < 21) return `${day}th`;
-      switch (day % 10) {
-        case 1: return `${day}st`;
-        case 2: return `${day}nd`;
-        case 3: return `${day}rd`;
-        default: return `${day}th`;
-      }
-    }
-
-    function formatUpdatedTime() {
-      const now = new Date();
-      const month = now.toLocaleString("en-US", { month: "long" });
-      const day = ordinalDay(now.getDate());
-      const time = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-      return `Last updated ${month} ${day} at ${time}`;
-    }
-
     function render(data) {
       const stops = data.stops;
       app.innerHTML = `
         ${renderFooter(data.footerText)}
-        <p class="updated">${escapeHtml(formatUpdatedTime())}</p>
+        <p class="updated">${escapeHtml(data.lastUpdatedAt)}</p>
         <h2 class="section-title">Malachi's Birthday Dance Crawl</h2>
         <section class="route-list" aria-label="Dance crawl route">
           ${stops.map((stop, i) => renderStop(stop, i, stops.length) + renderTransfer(stop.transferAfter, i)).join("")}
