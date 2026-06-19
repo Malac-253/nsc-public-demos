@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Malachi's Brook🅱️lyn Birthday Dance Crawl</title>
+  <title>Malachi's 🅱️rooklyn Birthday Dance Crawl</title>
   <style>
     :root {
       --bg: #050507;
@@ -581,6 +581,20 @@
       cursor: default;
     }
 
+    .event-window {
+      margin: 5px 0 0;
+      font-size: 11px;
+      line-height: 1.3;
+      font-weight: 600;
+      color: #767680;
+      letter-spacing: 0.01em;
+    }
+
+    .event-window strong {
+      color: #8a8a94;
+      font-weight: 700;
+    }
+
     .subtitle,
     .description {
       margin: 4px 0 0;
@@ -871,6 +885,124 @@
       margin-top: 28px;
       padding-top: 18px;
       border-top: 1px solid rgba(255,255,255,.08);
+      text-align: center;
+    }
+
+    .special-mission {
+      margin-top: 18px;
+      padding: 14px 12px 16px;
+      border-radius: 14px;
+      background: linear-gradient(160deg, rgba(243, 195, 25, 0.1), rgba(155, 85, 255, 0.08));
+      border: 1px solid rgba(243, 195, 25, 0.28);
+      box-shadow: 0 0 24px rgba(243, 195, 25, 0.06);
+      animation: slide-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation-delay: 0.55s;
+    }
+
+    .special-mission-badge {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(243, 195, 25, 0.16);
+      border: 1px solid rgba(243, 195, 25, 0.38);
+      color: #f3d56a;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .special-mission-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: #f6f6f7;
+      line-height: 1.15;
+    }
+
+    .special-mission-meal {
+      margin: 6px 0 0;
+      font-size: 15px;
+      font-weight: 800;
+      color: #e8e8ee;
+      line-height: 1.25;
+    }
+
+    .special-mission-spell {
+      margin: 4px 0 0;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #f3d56a;
+    }
+
+    .special-mission-spell .spell-b {
+      color: #ff6eb4;
+      font-size: 1.08em;
+    }
+
+    .special-mission-note {
+      margin: 8px 0 12px;
+      font-size: 13px;
+      line-height: 1.35;
+      color: #aeb0b8;
+      font-weight: 600;
+    }
+
+    .sandwich-chart-label {
+      margin: 0 0 8px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8a8a94;
+    }
+
+    .sandwich-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .sandwich-layer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .sandwich-layer-name {
+      font-size: 11px;
+      font-weight: 800;
+      color: rgba(10, 10, 12, 0.82);
+      letter-spacing: -0.01em;
+    }
+
+    .sandwich-layer-tag {
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(10, 10, 12, 0.55);
+    }
+
+    .special-mission-done {
+      margin: 12px 0 0;
+      font-size: 14px;
+      font-weight: 900;
+      color: #c9b0ff;
+      letter-spacing: -0.02em;
       text-align: center;
     }
 
@@ -1371,6 +1503,7 @@
       .venue-name { font-size: 19px; }
       .time-start, .time-end { font-size: 14px; padding-right: 8px; }
       .line-title { font-size: 15px; }
+      .time-badge { font-size: 12px; }
     }
   </style>
 </head>
@@ -1382,7 +1515,7 @@
   <script>
     const crawlData = {
       footerText: "Join the route. At any point? Bring whoever you want. Find Malachi, your conductor. Have fun.",
-      lastUpdatedAt: "Last updated at June 19th at 11:53 AM",
+      lastUpdatedAt: "Last updated at June 19th at 12:38 PM",
       crawlDate: "Brooklyn, New York – Saturday, June 20th, 2026",
       eventTitle: "Malachi's 🅱️rooklyn Birthday Dance Crawl 🌉",
       stops: [
@@ -1391,9 +1524,9 @@
           copyText: "Brooklyn Bridge Park, Brooklyn, NY 11201",
           startTime: "3:00 PM",
           endTime: "5:00 PM",
-          timeRange: "3:00 PM–5:00 PM",
+          eventWindow: "6:00 AM–1:00 AM",
           subtitle: "Malachi's favorite park",
-          description: "Park + chill — anyone can join here",
+          description: "Park + chill, anyone can join here",
           lineName: "Park Line via @ Old Fulton St",
           color: "#18b95c",
           links: [
@@ -1442,9 +1575,9 @@
           copyText: "430 Albee Square W, Brooklyn, NY 11201",
           startTime: "5:00 PM",
           endTime: "7:00 PM",
-          timeRange: "5:00 PM–7:00 PM",
+          eventWindow: "~11:00 AM–11:00 PM",
           subtitle: "Dinner stop · Albee Square",
-          description: "Hot pot & Korean BBQ — fuel up before the night",
+          description: "Hot pot & Korean BBQ, fuel up before the night",
           lineName: "Broth Line via @ Fulton St",
           color: "#ff512f",
           links: [
@@ -1453,7 +1586,7 @@
           ],
           routeChange: {
             title: "Route change",
-            text: "Dinner stop updated — now KPOT at Albee Square (5–7 PM window)"
+            text: "Dinner stop updated, now KPOT at Albee Square (5–7 PM window)"
           },
           superseded: {
             venue: "LaoJie Hotpot",
@@ -1468,39 +1601,42 @@
           },
           transferAfter: {
             title: "Transfer",
-            text: "Head east to BEVERAGES",
+            text: "Head to Red Bull Midsummer",
             options: [
-              { icon: "🚇", label: "Train", detail: "G to Lorimer → L to Morgan Av", duration: "~35 min" },
-              { icon: "🚗", label: "Uber", detail: "Downtown Brooklyn → Signal", duration: "~18 min" },
-              { icon: "🚌", label: "Bus", detail: "B62 toward Williamsburg, transfer", duration: "~40 min" }
+              { icon: "🚇", label: "Train", detail: "R train to 53rd St · Sunset Park", duration: "~28 min" },
+              { icon: "🚗", label: "Uber", detail: "Downtown Brooklyn → Sunset Park Rooftop", duration: "~20 min" },
+              { icon: "🚌", label: "Bus", detail: "B37 toward Sunset Park, walk to 53rd", duration: "~35 min" }
             ]
           }
         },
         {
-          venue: "BEVERAGES @ Signal",
-          copyText: "175 Morgan Ave, Brooklyn, NY 11237",
+          venue: "Red Bull Midsummer NYC",
+          copyText: "14b 53rd St, Brooklyn, NY 11232",
           startTime: "7:00 PM",
           endTime: "9:00 PM",
-          timeRange: "7:00 PM–9:00 PM",
-          subtitle: "Natural wine & music · Seedy J, Fernelly, Heidy P",
-          description: "Wine & listening after dinner — free RSVP",
-          lineName: "Beverages Line via @ Morgan Ave",
-          color: "#2dd881",
+          eventWindow: "10:00 AM–12:30 AM",
+          subtitle: "Sunset · Juan Atkins, Black Rave Culture, Andre Power",
+          description: "Rooftop house & techno, 21+. Drinks for purchase (incl. alcohol)",
+          lineName: "Midsummer Line via @ 53rd St",
+          color: "#db0a40",
           links: [
-            { label: "Maps", url: "https://maps.google.com/maps?q=175+Morgan+Ave,+Brooklyn,+NY+11237" },
-            { label: "Tickets", url: "https://ra.co/events/2443544" }
+            { label: "Maps", url: "https://maps.google.com/maps?q=14b+53rd+St,+Brooklyn,+NY+11232" },
+            { label: "Tickets", url: "https://dice.fm/event/8e5gqv-red-bull-midsummer-new-york-20th-jun-sunset-park-rooftop-brooklyn-tickets" },
+            { label: "Juan", url: "https://soundcloud.com/juan-atkins" },
+            { label: "BRC", url: "https://soundcloud.com/black-rave-culture" },
+            { label: "Site", url: "https://www.redbull.com/us-en/events/midsummer-new-york-city" }
           ],
           routeAddition: {
             title: "New stop added",
-            text: "BEVERAGES @ Signal joins the crawl — wine & listening after dinner"
+            text: "Red Bull Midsummer joins the crawl, rooftop house & techno after dinner"
           },
           transferAfter: {
             title: "Transfer",
-            text: "Into Bushwick for Juneteenth",
+            text: "Up to Bushwick for Juneteenth",
             options: [
-              { icon: "🚇", label: "Train", detail: "L to Myrtle-Wyckoff → J to Kosciusko", duration: "~20 min" },
-              { icon: "🚗", label: "Uber", detail: "Signal → Paragon on Broadway", duration: "~12 min" },
-              { icon: "🚶", label: "Walk", detail: "East Williamsburg toward Broadway", duration: "~25 min" }
+              { icon: "🚇", label: "Train", detail: "R to Atlantic-Barclays → J to Kosciusko", duration: "~45 min" },
+              { icon: "🚗", label: "Uber", detail: "Sunset Park → Paragon on Broadway", duration: "~28 min" },
+              { icon: "🚌", label: "Bus", detail: "B11 north + J train toward Broadway", duration: "~50 min" }
             ]
           }
         },
@@ -1509,24 +1645,25 @@
           copyText: "990 Broadway, Brooklyn, NY 11221",
           startTime: "9:30 PM",
           endTime: "11:00 PM",
-          timeRange: "9:30 PM–11:00 PM",
+          eventWindow: "9:00 PM–3:00 AM",
           subtitle: "Juneteenth · Felix Da Housecat, Shaun J. Wright",
-          description: "Dance floor opens — Bushwick",
+          description: "Dance floor opens, Bushwick",
           lineName: "Juneteenth Line via @ Broadway",
           color: "#f3c319",
           links: [
             { label: "Maps", url: "https://maps.google.com/maps?q=990+Broadway,+Brooklyn,+NY+11221" },
             { label: "Tickets", url: "https://ra.co/events/2432006" },
+            { label: "Music", url: "https://soundcloud.com/felix-da-housecat" },
             { label: "Site", url: "https://www.paragonbroadway.com/" }
           ],
           routeChange: {
             title: "Route change",
-            text: "Pregame stop updated — now Paragon Juneteenth (replaces Berlin)"
+            text: "Pregame stop updated, now Paragon Juneteenth (replaces Berlin)"
           },
           superseded: {
             venue: "Berlin",
             subtitle: "Original pregame stop",
-            description: "Live music bar — no longer on the route",
+            description: "Live music bar, no longer on the route",
             lineName: "Berlin Line via @ Kent Ave",
             color: "#f3c319",
             links: [
@@ -1550,7 +1687,7 @@
           copyText: "1260 Myrtle Ave, Brooklyn, NY 11221",
           startTime: "11:15 PM",
           endTime: "1:00 AM",
-          timeRange: "11:15 PM–1:00 AM",
+          eventWindow: "10:00 PM–4:00 AM",
           subtitle: "Jacob Dior Bday in BK",
           description: "ilyclemmie, Miss Monroe, Miss Worldwide",
           lineName: "Moon Line via @ Myrtle St",
@@ -1558,11 +1695,12 @@
           links: [
             { label: "Maps", url: "https://maps.google.com/maps?q=1260+Myrtle+Ave,+Brooklyn,+NY+11221" },
             { label: "Tickets", url: "https://ra.co/events/2428666" },
+            { label: "Music", url: "https://soundcloud.com/jacobdior" },
             { label: "Site", url: "https://www.moodringnyc.club/events" }
           ],
           routeChange: {
             title: "Route change",
-            text: "Dance stop updated — now Mood Ring (replaces Good Room)"
+            text: "Dance stop updated, now Mood Ring (replaces Good Room)"
           },
           superseded: {
             venue: "Good Room",
@@ -1592,9 +1730,9 @@
           copyText: "1140 Myrtle Ave, Brooklyn, NY 11221",
           startTime: "1:00 AM",
           endTime: "4:00 AM",
-          timeRange: "1:00 AM–4:00 AM",
+          eventWindow: "1:00 AM–4:00 AM",
           subtitle: "Final stop",
-          description: "The Recession Pop Party — Brooklyn",
+          description: "The Recession Pop Party, Brooklyn",
           lineName: "Hotel Line via @ Myrtle St",
           color: "#9b55ff",
           links: [
@@ -1602,9 +1740,36 @@
             { label: "Tickets", url: "https://tickets.venuepilot.com/e/the-recession-pop-party-2026-06-20-market-hotel-1140-myrtle-ave-brooklyn-nyc-ny-bushwick-brooklyn-new-3e48d6" },
             { label: "Site", url: "https://www.markethotel.org/calendar#/events/184989" },
             { label: "Music", url: "https://open.spotify.com/playlist/2tX2iPCGNqe0K976MnzJ1k?si=8cc24b889b5e4a69" }
-          ]
+          ],
+          transferAfter: {
+            title: "Transfer",
+            text: "Into the train yard",
+            options: [
+              { icon: "🚇", label: "Train", detail: "J toward early morning service", duration: "~12 min" },
+              { icon: "🚶", label: "Walk", detail: "Corner bodega · the mallyB run", duration: "~5 min" },
+              { icon: "🥯", label: "BEC", detail: "Bacon, egg & cheese mission", duration: "ASAP" }
+            ]
+          }
         }
-      ]
+      ],
+      specialMission: {
+        badge: "Special Mission 🚇",
+        title: "Into the train yard to end the night",
+        meal: "🥓 Bacon, 🥚 egg & 🧀 cheese with hash brown & cream cheese",
+        bagel: "🥯 Cinnamon raisin bagel",
+        style: "the mallyB way",
+        note: "Special train meal before the route powers down.",
+        doneLine: "And then we're done. ✨",
+        layers: [
+          { name: "Cinnamon raisin bagel (top)", tag: "TOP", color: "#c48a55", emoji: "🥯" },
+          { name: "Cream cheese", tag: "SPREAD", color: "#f3ece0", emoji: "🧈" },
+          { name: "Hash brown", tag: "CRUNCH", color: "#d4a017", emoji: "🥔" },
+          { name: "Egg", tag: "FOLD", color: "#f2d98b", emoji: "🥚" },
+          { name: "Bacon", tag: "CRISP", color: "#c45c42", emoji: "🥓" },
+          { name: "Cheese", tag: "MELT", color: "#f5b942", emoji: "🧀" },
+          { name: "Cinnamon raisin bagel (bottom)", tag: "BASE", color: "#9a6230", emoji: "🥯" }
+        ]
+      }
     };
 
     const app = document.getElementById("app");
@@ -1810,9 +1975,20 @@
       `;
     }
 
+    function formatTimeRange(stop) {
+      if (stop.startTime && stop.endTime) return `${stop.startTime}–${stop.endTime}`;
+      return stop.timeRange || "";
+    }
+
+    function renderEventWindow(eventWindow) {
+      if (!eventWindow) return "";
+      return `<p class="event-window"><strong>Event window</strong> · ${escapeHtml(eventWindow)}</p>`;
+    }
+
     function renderStop(stop, index, total) {
       const isLast = index === total - 1;
       const mapsUrl = (stop.links || []).find((l) => l.label === "Maps")?.url || "#";
+      const timeRange = formatTimeRange(stop);
       return `
         <article class="stop${isLast ? " is-last" : ""}${stop.superseded ? " has-route-change" : ""}${stop.routeAddition ? " has-route-addition" : ""}" style="--line-color: ${escapeHtml(stop.color)}; --stagger: ${index}">
           <div class="time-rail" aria-hidden="true">
@@ -1835,7 +2011,8 @@
                     ${escapeHtml(stop.venue)}${renderChevs()}
                   </a>
                 </h3>
-                <span class="time-badge">${escapeHtml(stop.timeRange)}</span>
+                <span class="time-badge">${escapeHtml(timeRange)}</span>
+                ${renderEventWindow(stop.eventWindow)}
                 <p class="subtitle">${escapeHtml(stop.subtitle)}</p>
                 <p class="description">${escapeHtml(stop.description)}</p>
                 ${renderWeather(stop.weather)}
@@ -1880,6 +2057,31 @@
       `;
     }
 
+    function renderSpecialMission(mission) {
+      if (!mission) return "";
+      const layers = (mission.layers || []).map((layer) => `
+        <div class="sandwich-layer" style="background: ${escapeHtml(layer.color)}">
+          <span class="sandwich-layer-name">${layer.emoji ? `${layer.emoji} ` : ""}${escapeHtml(layer.name)}</span>
+          <span class="sandwich-layer-tag">${escapeHtml(layer.tag)}</span>
+        </div>
+      `).join("");
+
+      return `
+        <section class="special-mission" aria-label="Special mission epilogue">
+          <span class="special-mission-badge">${escapeHtml(mission.badge)}</span>
+          <h3 class="special-mission-title">${escapeHtml(mission.title)}</h3>
+          <p class="special-mission-meal">${escapeHtml(mission.meal)} · ${escapeHtml(mission.bagel)}</p>
+          <p class="special-mission-spell">the mally<span class="spell-b">B</span> way</p>
+          <p class="special-mission-note">${escapeHtml(mission.note)}</p>
+          <div class="sandwich-chart" aria-label="Sandwich layer chart">
+            <p class="sandwich-chart-label">Special train meal · layer chart</p>
+            <div class="sandwich-stack">${layers}</div>
+          </div>
+          <p class="special-mission-done">${escapeHtml(mission.doneLine)}</p>
+        </section>
+      `;
+    }
+
     function renderDemoCredit() {
       return `
         <footer class="demo-credit">
@@ -1900,6 +2102,7 @@
         <section class="route-list" aria-label="Dance crawl route">
           ${stops.map((stop, i) => renderStop(stop, i, stops.length) + renderTransfer(stop.transferAfter, i)).join("")}
         </section>
+        ${renderSpecialMission(data.specialMission)}
         ${renderDemoCredit()}
       `;
     }
