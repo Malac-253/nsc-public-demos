@@ -190,11 +190,11 @@
     {% for m in media %}
     <div class="sl">
       {% if m.kind == "video" %}
-      <video src="{{ m.file.url }}" controls playsinline preload="metadata"></video>
+      <video src="{{ m.file.url|safe }}" controls playsinline preload="metadata"></video>
       {% else %}
-      <img src="{{ m.file.url }}" loading="lazy" alt="">
+      <img src="{{ m.file.url|safe }}" loading="lazy" alt="">
       {% endif %}
-      <a class="dl" href="{{ m.file.url }}" download data-snd="snap">Download</a>
+      <a class="dl" href="{{ m.file.url|safe }}" download data-snd="snap">Download</a>
     </div>
     {% endfor %}
   </div>

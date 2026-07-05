@@ -8,6 +8,9 @@
 .sample .meta{font-size:12px;color:var(--muted);word-break:break-all}
 .issue{background:var(--burgundy-soft);border:1px solid #e0b8bc;border-radius:10px;padding:10px 12px;
   font-size:13px;margin-bottom:8px;color:var(--burgundy-deep)}
+.note{background:var(--amber-soft);border:1px solid #dfc98a;border-radius:10px;padding:10px 12px;
+  font-size:13px;margin-bottom:10px;color:#5a3c00;line-height:1.55}
+.test-link{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;color:var(--green-deep)}
 {% endblock %}
 {% block content %}
 <a href="{% url 'settings' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Settings</a>
@@ -15,13 +18,20 @@
 <div class="card" style="margin-top:8px">
   <h2>Media storage check</h2>
   <p class="muted" style="font-size:13px;margin-bottom:12px">
-    Admin-only diagnostic — no Render Shell needed. Run this after deploy if photos aren't loading.
+    Admin-only diagnostic — no Render Shell needed.
   </p>
 
+  <div class="note">
+    <strong>Private bucket = normal “Access Denied” on the raw Object URL.</strong>
+    In the S3 console, the plain object link always 403s when block public access is on.
+    The AWS preview works because <em>AWS</em> signs a one-off URL — not because the bucket is public.
+    The app must use presigned URLs (with <code>X-Amz-</code> query params) in the feed.
+  </div>
+
   {% if info.ok %}
-  <p class="status-ok">✓ Everything looks configured correctly.</p>
+  <p class="status-ok">✓ Presigned URLs load correctly from the server.</p>
   {% else %}
-  <p class="status-bad">✗ Problems found — see details below.</p>
+  <p class="status-bad">✗ Presigned URLs are failing — see details below.</p>
   {% endif %}
 
   <div style="font-size:13px;margin:12px 0;line-height:1.7">
@@ -29,7 +39,12 @@
     <div><strong>MEDIA_URL:</strong> {{ info.media_url }}</div>
     {% if info.using_s3 %}
     <div><strong>S3 bucket:</strong> {{ info.bucket|default:"(missing)" }}</div>
-    <div><strong>Region:</strong> {{ info.region|default:"?" }}</div>
+    <div><strong>Render region setting:</strong> {{ info.region|default:"?" }}</div>
+    {% if info.bucket_region %}
+    <div><strong>Actual bucket region:</strong> {{ info.bucket_region }}
+      {% if info.region_mismatch %}<span class="status-bad"> — mismatch!</span>{% endif %}
+    </div>
+    {% endif %}
     <div><strong>Presigned URLs:</strong> {{ info.querystring_auth|yesno:"on,off" }}</div>
     <div><strong>Access key set:</strong> {{ info.access_key_set|yesno:"yes,NO" }}</div>
     {% else %}
@@ -45,7 +60,9 @@
 {% if info.samples %}
 <div class="card">
   <h2>Sample feed photos</h2>
-  <p class="muted" style="font-size:12.5px;margin-bottom:10px">If thumbnails load here, S3 + presigned URLs are working.</p>
+  <p class="muted" style="font-size:12.5px;margin-bottom:10px">
+    Thumbnails use the same presigned URLs as the feed. “Test URL” opens exactly what the browser loads.
+  </p>
   {% for row in info.samples %}
   <div class="sample">
     <strong>Post #{{ row.id }}</strong>
@@ -54,11 +71,19 @@
       In storage: {{ row.exists|yesno:"yes,no,?" }}
       {% if row.size %} · {{ row.size }} bytes{% endif %}
       · Signed URL: {{ row.signed|yesno:"yes,no" }}
+      {% if row.http_status %} · HTTP {{ row.http_status }}{% endif %}
+      {% if row.fetch_ok %} · <span class="status-ok">loads OK</span>{% elif row.http_status %} · <span class="status-bad">failed</span>{% endif %}
     </div>
-    {% if row.error %}<div class="issue" style="margin-top:8px">{{ row.error }}</div>{% endif %}
+    {% if row.error_message %}
+    <div class="issue" style="margin-top:8px">{{ row.error_code }}: {{ row.error_message }}</div>
+    {% elif row.error %}
+    <div class="issue" style="margin-top:8px">{{ row.error }}</div>
+    {% endif %}
     {% if row.url %}
-    <img src="{{ row.url }}" alt="Post #{{ row.id }}" loading="lazy"
-         onerror="this.style.outline='3px solid #a83a2a';this.alt='Failed to load — check S3/IAM';">
+    <a class="test-link" href="{{ row.url|safe }}" target="_blank" rel="noopener">Test presigned URL in new tab →</a>
+    {% if row.fetch_ok %}
+    <img src="{{ row.url|safe }}" alt="Post #{{ row.id }}" loading="lazy">
+    {% endif %}
     {% endif %}
   </div>
   {% endfor %}
@@ -66,11 +91,13 @@
 {% endif %}
 
 <div class="card">
-  <h2>Deploy logs (free tier)</h2>
-  <p class="muted" style="font-size:13px">
-    Each deploy also runs <code>check_media</code> during the build. Open your Render service →
-    <strong>Events</strong> → latest deploy → <strong>Build logs</strong> and search for
-    “Media diagnostics”.
+  <h2>Most common fix</h2>
+  <p style="font-size:13px;line-height:1.6">
+    In Render → Environment, set <strong>AWS_S3_REGION_NAME</strong> to the exact bucket region
+    (S3 console → your bucket → Properties → AWS Region, e.g. <code>us-east-1</code> not “US East”).
+    IAM user needs at least:
   </p>
+  <pre style="font-size:11px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;margin-top:8px">s3:ListBucket on arn:aws:s3:::YOUR-BUCKET
+s3:GetObject, s3:PutObject, s3:DeleteObject on arn:aws:s3:::YOUR-BUCKET/*</pre>
 </div>
 {% endblock %}

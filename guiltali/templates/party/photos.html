@@ -39,16 +39,16 @@
     <div class="media-wrap">
       {% if e.kind == "video" %}
       <span class="kind-pill">Video</span>
-      <video src="{{ e.file.url }}" controls playsinline preload="metadata"></video>
+      <video src="{{ e.file.url|safe }}" controls playsinline preload="metadata"></video>
       {% else %}
-      <img src="{{ e.file.url }}" loading="lazy" alt="">
+      <img src="{{ e.file.url|safe }}" loading="lazy" alt="">
       {% endif %}
     </div>
     <div class="meta">
       <img src="{{ e.post.author.icon_url }}" alt="">
       <span>{{ e.post.author.shown_name }}</span>
       <span class="muted">· {{ e.post.created_at|timesince }} ago{% if e.post.event %} · {{ e.post.event.name }}{% endif %}</span>
-      <a class="dl" href="{{ e.file.url }}" download data-snd="snap">Save</a>
+      <a class="dl" href="{{ e.file.url|safe }}" download data-snd="snap">Save</a>
     </div>
   </div>
   {% empty %}

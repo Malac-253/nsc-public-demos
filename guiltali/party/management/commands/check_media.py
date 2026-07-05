@@ -39,6 +39,11 @@ class Command(BaseCommand):
                     if row["size"] is not None:
                         self.stdout.write(f"    size: {row['size']} bytes")
                     self.stdout.write(f"    signed URL: {row['signed']}")
+                    if row.get("http_status"):
+                        status = "OK" if row.get("fetch_ok") else "FAILED"
+                        self.stdout.write(f"    HTTP HEAD: {row['http_status']} ({status})")
+                        if row.get("error_message"):
+                            self.stdout.write(f"    S3 error: {row['error_code']}: {row['error_message']}")
                     url = row["url"]
                     self.stdout.write(f"    url: {url[:140]}{'…' if len(url) > 140 else ''}")
 

@@ -116,6 +116,7 @@ if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None
     AWS_S3_SIGNATURE_VERSION = "s3v4"
+    AWS_S3_ADDRESSING_STYLE = "virtual"
     # Private bucket + time-limited signed URLs — only pages your app renders (after login)
     # get working links; raw S3 object URLs return 403. Download/img/video still work.
     AWS_QUERYSTRING_AUTH = True
