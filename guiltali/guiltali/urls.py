@@ -8,4 +8,6 @@ urlpatterns = [
     path("", include("party.urls")),
 ]
 
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve uploaded files from local disk when not using S3/cloud storage.
+if settings.STORAGES["default"]["BACKEND"] == "django.core.files.storage.FileSystemStorage":
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -4,3 +4,5 @@ gunicorn>=23.0
 whitenoise>=6.7
 psycopg[binary]>=3.2
 Pillow>=10.4
+django-storages[s3]>=1.14
+boto3>=1.35

@@ -9,6 +9,10 @@
       {% if page.kind == 'recipe' %}<img src="{% static 'img/icons/fire.png' %}" alt="">{% else %}<img src="{% static 'img/icons/lantern.png' %}" alt="">{% endif %}
       {{ page.title }}
     </h2>
+    {% if can_edit %}
+    <a href="{% url 'info_page_edit' page.slug %}" style="border:none;background:var(--gray-soft);border-radius:8px;width:30px;height:30px;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none"
+      title="Edit this page" data-snd="rustle">✎</a>
+    {% endif %}
     <button style="border:none;background:var(--gray-soft);border-radius:8px;width:30px;height:30px;color:var(--muted);cursor:pointer"
       type="button" onclick="copyLink(this)" title="Copy link" data-snd="rustle">⎘</button>
   </div>
@@ -25,16 +29,28 @@
       </ul>
     {% endif %}
   {% endfor %}
+  {% if page.link_url %}
+  <a class="linkbtn" href="{{ page.link_url }}" target="_blank" rel="noopener"
+    style="display:block;margin:4px 0 10px;text-align:center;background:var(--green-soft);border:2px solid #bcd9bd;
+    color:var(--green-deep);font-weight:700;font-size:13.5px;border-radius:10px;padding:9px" data-snd="rustle">
+    {{ page.link_label|default:"Read more" }}
+  </a>
+  {% endif %}
   <div class="divider"></div>
   <p class="muted" style="font-size:11px">
     {% if page.created_by %}Added by {{ page.created_by.shown_name }}{% endif %}
     {% if page.updated_by %} · edited by {{ page.updated_by.shown_name }}, {{ page.updated_at|timesince }} ago{% endif %}
   </p>
-  <form method="post" style="margin-top:8px">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="resurface">
-    <button class="btn brown small" type="submit" data-snd="hoot">Resurface in the feed</button>
-  </form>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <form method="post" style="margin:0">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="resurface">
+      <button class="btn brown small" type="submit" data-snd="hoot">Resurface in the feed</button>
+    </form>
+    {% if can_edit %}
+    <a class="btn ghost small" href="{% url 'info_page_edit' page.slug %}" data-snd="rustle">Edit article</a>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}
 {% block extra_js %}

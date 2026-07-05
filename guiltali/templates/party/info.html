@@ -32,9 +32,24 @@
 </div>
 {% endif %}
 
+{% if locations %}
 <div class="card info-card">
-<details open>
-<summary><img src="{% static 'img/icons/leaf.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Lists</h2></summary>
+<details>
+<summary><img src="{% static 'img/icons/compass.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Location suggestions</h2></summary>
+  {% for p in locations %}
+  <a class="info-row" href="{% url 'info_page' p.slug %}" data-snd="rustle">
+    <span class="ic"><img src="{% static 'img/icons/pine.png' %}" alt=""></span>
+    <span style="flex:1;min-width:0"><strong style="font-size:14px">{{ p.title }}</strong><div class="d">{{ p.subtitle }}</div></span>
+    <span class="chev">›</span>
+  </a>
+  {% endfor %}
+</details>
+</div>
+{% endif %}
+
+<div class="card info-card">
+<details>
+<summary><img src="{% static 'img/icons/leaf.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Important list</h2></summary>
   {% for tl in lists %}
   <div class="info-row">
     <a href="{% url 'list_detail' tl.id %}" data-snd="rustle" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-decoration:none;color:inherit">
@@ -51,8 +66,8 @@
 </div>
 
 <div class="card info-card">
-<details open>
-<summary><img src="{% static 'img/icons/mushroom.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">The menu <span class="sub" style="font-weight:600;font-size:11px;color:var(--muted)">cooking instructions</span></h2></summary>
+<details>
+<summary><img src="{% static 'img/icons/mushroom.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Food menu <span class="sub" style="font-weight:600;font-size:11px;color:var(--muted)">cooking instructions</span></h2></summary>
   {% for p in recipes %}
   <a class="info-row" href="{% url 'info_page' p.slug %}" data-snd="rustle">
     <span class="ic" style="background:var(--amber-soft)"><img src="{% static 'img/icons/fire.png' %}" alt=""></span>
@@ -68,7 +83,7 @@
 
 {% if notes %}
 <div class="card info-card">
-<details open>
+<details>
 <summary><img src="{% static 'img/icons/lantern.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Notes &amp; house info</h2></summary>
   {% for p in notes %}
   <a class="info-row" href="{% url 'info_page' p.slug %}" data-snd="rustle">
@@ -77,21 +92,6 @@
       <strong style="font-size:14px">{{ p.title }}</strong>
       <div class="d">{{ p.subtitle }}{% if p.restricted %} · <span style="color:var(--burgundy)">limited visibility</span>{% endif %}</div>
     </span>
-    <span class="chev">›</span>
-  </a>
-  {% endfor %}
-</details>
-</div>
-{% endif %}
-
-{% if locations %}
-<div class="card info-card">
-<details>
-<summary><img src="{% static 'img/icons/compass.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Location suggestions</h2></summary>
-  {% for p in locations %}
-  <a class="info-row" href="{% url 'info_page' p.slug %}" data-snd="rustle">
-    <span class="ic"><img src="{% static 'img/icons/pine.png' %}" alt=""></span>
-    <span style="flex:1;min-width:0"><strong style="font-size:14px">{{ p.title }}</strong><div class="d">{{ p.subtitle }}</div></span>
     <span class="chev">›</span>
   </a>
   {% endfor %}
@@ -115,7 +115,7 @@
 {% endif %}
 
 <div class="card info-card">
-<details open>
+<details>
 <summary><img src="{% static 'img/icons/sun.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Attendance timeline</h2></summary>
   <p class="muted" style="font-size:12.5px;margin:8px 0 8px">See everyone side-by-side on the day chart, and edit your own arrival/departure.</p>
   <a class="btn ghost small" href="{% url 'schedule' %}" data-snd="rustle">Open attendance timeline</a>
@@ -123,13 +123,29 @@
 </div>
 
 <div class="card info-card">
-<details open>
+<details>
 <summary><img src="{% static 'img/icons/star.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Tools</h2></summary>
   <a class="info-row" href="{% url 'tools' %}" data-snd="rustle">
     <span class="ic" style="background:var(--amber-soft)"><img src="{% static 'img/icons/star.png' %}" alt=""></span>
     <span style="flex:1">
       <strong style="font-size:14px">Games &amp; scorekeeper</strong>
       <div class="d">Pickleball, pool &amp; more — track points live</div>
+    </span>
+    <span class="chev">›</span>
+  </a>
+  <a class="info-row" href="{% url 'picker_tool' %}" data-snd="rustle">
+    <span class="ic" style="background:var(--green-soft)"><img src="{% static 'img/icons/acorn.png' %}" alt=""></span>
+    <span style="flex:1">
+      <strong style="font-size:14px">Random party member picker</strong>
+      <div class="d">Weighted spin to pick someone — nature-themed animation</div>
+    </span>
+    <span class="chev">›</span>
+  </a>
+  <a class="info-row" href="{% url 'events_list' %}" data-snd="rustle">
+    <span class="ic" style="background:var(--bark-soft)"><img src="{% static 'img/icons/fire.png' %}" alt=""></span>
+    <span style="flex:1">
+      <strong style="font-size:14px">Events</strong>
+      <div class="d">Tag photos &amp; videos to named happenings</div>
     </span>
     <span class="chev">›</span>
   </a>

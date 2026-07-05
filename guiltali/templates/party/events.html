@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Events{% endblock %}
+{% block content %}
+<a href="{% url 'photos' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Photo &amp; video wall</a>
+<h1 style="font-size:19px;font-weight:800;letter-spacing:-.02em;margin:8px 0 4px">Events</h1>
+<p class="muted" style="font-size:12.5px;margin-bottom:12px">Tag photos &amp; videos to a named happening (bonfire night, the big hike) so they group together on the wall.</p>
+
+{% if is_staff %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/fire.png' %}" alt="">New event</h2>
+  <form method="post">
+    {% csrf_token %}
+    <label>Name</label>
+    <input type="text" name="name" maxlength="140" placeholder="e.g. Bonfire night" required>
+    <label>Date (optional)</label>
+    <input type="date" name="date">
+    <button class="btn small" type="submit" style="margin-top:10px" data-snd="hoot">Create event</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/compass.png' %}" alt="">All events</h2>
+  {% for row in rows %}
+  <a class="info-row" href="{% url 'photos' %}?event={{ row.event.id }}" style="display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line);color:inherit">
+    <span class="ic" style="flex:none;width:38px;height:38px;border-radius:11px;background:var(--green-soft);display:flex;align-items:center;justify-content:center"><img src="{% static 'img/icons/fire.png' %}" style="width:26px;height:26px" alt=""></span>
+    <span style="flex:1;min-width:0">
+      <strong style="font-size:14px">{{ row.event.name }}</strong>
+      <div class="muted" style="font-size:11.5px">{% if row.event.date %}{{ row.event.date|date:"M j" }} · {% endif %}{{ row.media_count }} item{{ row.media_count|pluralize }}</div>
+    </span>
+    <span class="chev" style="color:var(--muted)">›</span>
+  </a>
+  {% empty %}<p class="muted">No events yet.</p>{% endfor %}
+</div>
+{% endblock %}

@@ -10,6 +10,12 @@
 .tagbar .amt{width:70px;flex:none;text-align:right;color:var(--muted);font-size:11.5px}
 .personbar{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
 .personbar:last-child{border-bottom:none}
+.pie-wrap{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+.pie{width:150px;height:150px;border-radius:50%;flex:none;background:conic-gradient(var(--pie-stops));
+  box-shadow:inset 0 0 0 6px var(--card)}
+.pie-legend{flex:1;min-width:0;font-size:12px}
+.pie-legend .lg{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.pie-legend .sw{width:10px;height:10px;border-radius:3px;flex:none}
 {% endblock %}
 {% block content %}
 <a href="{% url 'budget' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Budget</a>
@@ -17,10 +23,20 @@
 
 <div class="card">
   <h2><img src="{% static 'img/icons/acorn.png' %}" alt="">By category <span class="sub">${{ total_spent|floatformat:2 }} total</span></h2>
+  {% if tag_rows %}
+  <div class="pie-wrap">
+    <div class="pie" style="--pie-stops:{% for r in tag_rows %}{{ r.color }} {{ r.pie_start }}% {{ r.pie_end }}%{% if not forloop.last %}, {% endif %}{% endfor %}"></div>
+    <div class="pie-legend">
+      {% for r in tag_rows %}
+      <div class="lg"><span class="sw" style="background:{{ r.color }}"></span>{{ r.label }} <span class="muted">— {{ r.pct }}%</span></div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
   {% for r in tag_rows %}
   <div class="tagbar">
     <span class="lbl">{{ r.label }}</span>
-    <span class="track"><span class="fillb" style="width:{{ r.pct }}%;display:block"></span></span>
+    <span class="track"><span class="fillb" style="width:{{ r.pct }}%;display:block;background:{{ r.color }}"></span></span>
     <span class="amt">${{ r.amount }} · {{ r.pct }}%</span>
   </div>
   {% empty %}<p class="muted">No expenses logged yet.</p>{% endfor %}
@@ -30,8 +46,8 @@
   <h2><img src="{% static 'img/icons/leaf.png' %}" alt="">By person</h2>
   {% for row in person_rows %}
   <div class="personbar">
-    <span class="avatar-px" style="width:36px;height:36px;background:{{ row.member.swatch }}18;border-color:{{ row.member.swatch }}44"><img src="{{ row.member.icon_url }}" alt=""></span>
-    <span style="flex:1;font-size:13.5px">{{ row.member.shown_name }}</span>
+    <a class="avatar-px" href="{% url 'member_link' row.member.id %}" style="width:36px;height:36px;background:{{ row.member.swatch }}18;border-color:{{ row.member.swatch }}44"><img src="{{ row.member.icon_url }}" alt=""></a>
+    <span style="flex:1;font-size:13.5px">{{ row.member.shown_name }}{% if row.member.real_name_sub %}<br><span class="real-sub" style="font-size:10px;color:var(--muted);font-weight:600">{{ row.member.real_name_sub }}</span>{% endif %}</span>
     <span class="muted" style="font-size:12px">paid ${{ row.paid|floatformat:2 }}</span>
     <span class="{% if row.balance >= 0 %}money-pos{% else %}money-neg{% endif %}" style="font-size:13px;width:70px;text-align:right">
       {% if row.balance >= 0 %}+{% endif %}${{ row.balance|floatformat:2 }}

@@ -85,7 +85,7 @@ a.hero-link:active .hero-title{opacity:.75}
 <div class="card">
   <h2><img src="{% static 'img/icons/compass.png' %}" alt="">The party <span class="sub">{{ members|length }} hikers</span></h2>
   {% for m in members %}
-  <a class="party-row" href="{% url 'feed' %}?member={{ m.id }}" data-snd="rustle">
+  <a class="party-row" href="{% url 'member_link' m.id %}" data-snd="rustle">
     <span class="avatar-px" style="border-color:{{ m.swatch }}44;background:{{ m.swatch }}18">
       <img src="{{ m.icon_url }}" alt="">
     </span>
@@ -108,7 +108,7 @@ a.hero-link:active .hero-title{opacity:.75}
     <div style="padding:8px 0;border-bottom:1px solid var(--line)">
       <span class="pill {% if p.kind == 'suggestion' %}amber{% elif p.kind == 'photo' %}bark{% endif %}">{{ p.get_kind_display }}</span>
       <span style="font-size:13.5px">{{ p.title|default:p.text|truncatechars:80 }}</span>
-      <div class="muted" style="font-size:11.5px">{{ p.author.shown_name }} · {{ p.created_at|timesince }} ago</div>
+      <div class="muted" style="font-size:11.5px">{{ p.author.shown_name }}{% if p.author.real_name_sub %} ({{ p.author.real_name_sub }}){% endif %} · {{ p.created_at|timesince }} ago</div>
     </div>
   {% endfor %}
   <a href="{% url 'feed' %}" class="muted" style="display:block;margin-top:8px;font-size:12.5px">Open the trip feed →</a>

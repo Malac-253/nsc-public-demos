@@ -99,6 +99,32 @@ STORAGES = {
 MEDIA_URL = "media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
+# Allow video uploads up to ~50 MB (Render/nginx may also impose limits).
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52_428_800
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52_428_800
+
+# Optional: persist uploads to S3 (recommended on Render free tier — local disk is wiped on redeploy).
+# Set these env vars in Render → Environment:
+#   AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+# Optional: AWS_S3_CUSTOM_DOMAIN (CloudFront or bucket website URL)
+if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
+    INSTALLED_APPS.append("storages")
+    AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"]
+    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
+    custom_domain = os.environ.get("AWS_S3_CUSTOM_DOMAIN")
+    if custom_domain:
+        AWS_S3_CUSTOM_DOMAIN = custom_domain
+        MEDIA_URL = f"https://{custom_domain}/"
+    else:
+        MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/"
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "login"

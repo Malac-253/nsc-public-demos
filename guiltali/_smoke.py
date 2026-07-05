@@ -73,7 +73,7 @@ for path, marker in [
     ("/info/tools/", b"Pickleball"),
     ("/feed/", b"feed"),
     ("/feed/new/", b"Add to the feed"),
-    ("/photos/", b"Photo wall"),
+    ("/photos/", b"Photo &amp; video wall"),
     ("/party/", b"The party"),
     ("/settings/", b"About"),
 ]:
@@ -218,6 +218,67 @@ if own_exp:
     check("admin opens expense edit", r.status_code == 302)
     r = c_kayla.get(f"/budget/edit/{own_exp.id}/")
     check("non-payer blocked from edit", r.status_code in (403, 404))
+
+# --- profile icon routing: own -> settings, others -> their feed ---
+r = c.get(f"/m/{me_m.id}/", follow=False)
+check("own icon routes to settings", r.status_code == 302 and r.url == "/settings/")
+r = c.get(f"/m/{km.id}/", follow=False)
+check("other's icon routes to their feed", r.status_code == 302 and f"member={km.id}" in r.url)
+
+# --- notifications: commenting on someone else's post notifies them ---
+from party.models import Notification
+other_post = Post.objects.filter(trip=trip).exclude(author=me_m).first()
+if other_post:
+    before = Notification.objects.filter(recipient=other_post.author).count()
+    c.post("/feed/", {"action": "comment", "post_id": other_post.id, "text": "notify test"})
+    after = Notification.objects.filter(recipient=other_post.author).count()
+    check("comment creates a notification", after == before + 1)
+r = c.get("/notifications/")
+check("notifications page renders", r.status_code == 200)
+
+# --- member-filtered feed also surfaces their comments, highlighted ---
+r = c.get(f"/feed/?member={km.id}")
+check("member filter includes posts they commented on or highlights", b"blink" in r.content or b"Showing" in r.content)
+
+# --- events: staff creates one, can tag a post to it ---
+r = c.post("/events/", {"name": "Smoke bonfire", "date": "2026-07-18"})
+check("staff creates event", r.status_code == 302)
+from party.models import Event
+ev = Event.objects.filter(trip=trip, name="Smoke bonfire").first()
+check("event saved", ev is not None)
+if ev:
+    r = c.get(f"/photos/?event={ev.id}")
+    check("photos filtered by event", r.status_code == 200)
+
+# --- expense delete: payer/admin only ---
+own_exp2 = Expense.objects.filter(trip=trip, payer=me_m).exclude(pk=own_exp.id if own_exp else -1).first()
+if own_exp2:
+    r = c_kayla.post(f"/budget/delete/{own_exp2.id}/", {})
+    check("non-owner can't delete expense", Expense.objects.filter(pk=own_exp2.id).exists())
+    r = c.post(f"/budget/delete/{own_exp2.id}/", {})
+    check("admin deletes expense", not Expense.objects.filter(pk=own_exp2.id).exists())
+
+# --- budget backup download (admin only) ---
+r = c.get("/budget/backup/")
+check("admin downloads expense backup", r.status_code == 200 and r["Content-Type"] == "application/json")
+r = c_kayla.get("/budget/backup/")
+check("non-admin blocked from backup", r.status_code == 404)
+
+# --- info page editing (staff only), incl. link field ---
+page = InfoPage.objects.filter(trip=trip).first()
+r = c_kayla.get(f"/info/{page.slug}/edit/")
+check("non-staff blocked from info edit", r.status_code == 404)
+r = c.post(f"/info/{page.slug}/edit/", {
+    "title": page.title, "subtitle": page.subtitle, "body": page.body,
+    "link_url": "https://example.com/recipe", "link_label": "Original recipe",
+})
+check("staff saves info page edit", r.status_code == 302)
+page.refresh_from_db()
+check("info page link saved", page.link_url == "https://example.com/recipe")
+
+# --- random picker tool renders ---
+r = c.get("/info/tools/picker/")
+check("picker tool renders", r.status_code == 200 and b"Spin" in r.content)
 
 print(f"\n{PASS} passed, {FAIL} failed")
 raise SystemExit(1 if FAIL else 0)

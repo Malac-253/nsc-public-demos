@@ -56,7 +56,7 @@
   {% for r in tag_rows %}
   <div class="tagbar">
     <span class="lbl">{{ r.label }}</span>
-    <span class="track"><span class="fillb" style="width:{{ r.pct }}%;display:block"></span></span>
+    <span class="track"><span class="fillb" style="width:{{ r.pct }}%;display:block;background:{{ r.color }}"></span></span>
     <span class="amt">${{ r.amount }}</span>
   </div>
   {% endfor %}
@@ -89,7 +89,7 @@
             </span>
             <span class="exp-title-col">
               <div class="exp-title">{{ row.exp.title }}</div>
-              <div class="exp-meta">{{ row.exp.payer.shown_name }} · {{ row.exp.incurred_on|date:"M j"|default:row.exp.created_at|date:"M j" }}</div>
+              <div class="exp-meta">{{ row.exp.payer.shown_name }}{% if row.exp.payer.real_name_sub %} <span style="opacity:.75">({{ row.exp.payer.real_name_sub }})</span>{% endif %} · {{ row.exp.incurred_on|date:"M j"|default:row.exp.created_at|date:"M j" }}</div>
               {% if row.exp.tags or row.exp.is_pre_trip %}
               <div class="exp-tags">
                 {% if row.exp.is_pre_trip %}<span class="pill bark" style="font-size:10px;padding:2px 6px">pre-trip</span>{% endif %}
@@ -105,7 +105,13 @@
             {% elif row.excluded %}<div class="muted">You're not on this one.</div>{% endif %}
             {% if row.exp.receipt %}<a href="{{ row.exp.receipt.url }}" target="_blank" style="margin-top:4px;display:inline-block">View receipt →</a>{% endif %}
             {% if row.can_edit %}
-            <a class="btn ghost small" href="{% url 'budget_edit' row.exp.id %}" style="margin-top:8px;display:inline-block" data-snd="rustle">Edit expense</a>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <a class="btn ghost small" href="{% url 'budget_edit' row.exp.id %}" data-snd="rustle">Edit expense</a>
+              <form method="post" action="{% url 'budget_delete' row.exp.id %}" onsubmit="return confirm('Delete “{{ row.exp.title }}”? This can\'t be undone.')" style="margin:0">
+                {% csrf_token %}
+                <button class="btn ghost small" type="submit" style="color:var(--burgundy)" data-snd="snap">Delete</button>
+              </form>
+            </div>
             {% endif %}
           </div>
         </details>
@@ -124,14 +130,15 @@
   <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">Full tabs <span class="sub">admins &amp; moderators</span></h2>
   {% for row in balance_rows %}
   <div class="item-row">
-    <span class="avatar-px" style="background:{{ row.member.swatch }}18;border-color:{{ row.member.swatch }}44"><img src="{{ row.member.icon_url }}" alt=""></span>
-    <span>{{ row.member.shown_name }}</span>
+    <a class="avatar-px" href="{% url 'member_link' row.member.id %}" style="background:{{ row.member.swatch }}18;border-color:{{ row.member.swatch }}44"><img src="{{ row.member.icon_url }}" alt=""></a>
+    <span>{{ row.member.shown_name }}{% if row.member.real_name_sub %}<br><span class="real-sub" style="font-size:10px;color:var(--muted);font-weight:600">{{ row.member.real_name_sub }}</span>{% endif %}</span>
     <span class="qty {% if row.balance >= 0 %}money-pos{% else %}money-neg{% endif %}" style="font-size:13.5px">
       {% if row.balance >= 0 %}+{% endif %}${{ row.balance|floatformat:2 }}
     </span>
     {% if me.role == 'admin' %}<a class="muted" style="font-size:11.5px" href="{% url 'receipt_member' row.member.id %}">receipt</a>{% endif %}
   </div>
   {% endfor %}
+  <a class="btn ghost small" href="{% url 'budget_backup' %}" style="margin-top:10px;width:100%" data-snd="rustle">Download backup (.json)</a>
 </div>
 {% endif %}
 {% endblock %}

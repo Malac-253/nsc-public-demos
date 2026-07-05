@@ -39,7 +39,7 @@
   <div class="sched-row" id="row-{{ r.member.id }}">
     <div class="who">
       <img src="{{ r.member.icon_url }}" alt="">
-      <span>{{ r.member.shown_name }}</span>
+      <span>{{ r.member.shown_name }}{% if r.member.real_name_sub %}<br><span style="font-size:9px;color:var(--muted);font-weight:600">{{ r.member.real_name_sub }}</span>{% endif %}</span>
     </div>
     <div class="bar-lane" {% if r.editable or r.travel_note %}onclick="toggleDetail({{ r.member.id }})" style="cursor:pointer"{% endif %}>
       <div class="bar" style="left:{{ r.start_pct }}%;width:{{ r.width_pct }}%;background:{{ r.member.swatch }}">

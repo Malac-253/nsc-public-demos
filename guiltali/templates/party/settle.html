@@ -78,8 +78,8 @@
   <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">Everyone's balance</h2>
   {% for row in balance_rows %}
   <div class="item-row" {% if row.member.id == me.id %}style="background:var(--green-soft);border-radius:8px;padding-left:8px;padding-right:8px"{% endif %}>
-    <span class="avatar-px" style="width:36px;height:36px;background:{{ row.member.swatch }}18;border-color:{{ row.member.swatch }}44"><img src="{{ row.member.icon_url }}" alt="" style="width:26px;height:26px"></span>
-    <span>{{ row.member.shown_name }}</span>
+    <a class="avatar-px" href="{% url 'member_link' row.member.id %}" style="width:36px;height:36px;background:{{ row.member.swatch }}18;border-color:{{ row.member.swatch }}44"><img src="{{ row.member.icon_url }}" alt="" style="width:26px;height:26px"></a>
+    <span>{{ row.member.shown_name }}{% if row.member.real_name_sub %}<br><span style="font-size:10px;color:var(--muted);font-weight:600">{{ row.member.real_name_sub }}</span>{% endif %}</span>
     <span class="qty {% if row.balance >= 0 %}money-pos{% else %}money-neg{% endif %}" style="font-size:13.5px">
       {% if row.balance >= 0 %}+{% endif %}${{ row.balance|floatformat:2 }}
     </span>

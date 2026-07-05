@@ -38,6 +38,16 @@
     <textarea name="text" rows="3" placeholder="Little tweet-sized update…"></textarea>
     <label>Pictures (you can pick several)</label>
     <input type="file" name="more_images" accept="image/*" multiple>
+    <label>Videos (optional, up to 3 · mp4, mov, webm)</label>
+    <input type="file" name="videos" accept="video/mp4,video/quicktime,video/webm,video/*" multiple>
+    <label>Part of an event? (optional — groups photos/videos on the wall)</label>
+    <div class="formrow">
+      <select name="event_id">
+        <option value="">No event</option>
+        {% for ev in events %}<option value="{{ ev.id }}">{{ ev.name }}</option>{% endfor %}
+      </select>
+      <input type="text" name="new_event_name" placeholder="…or name a new one">
+    </div>
     <label>Link (becomes a button)</label>
     <div class="formrow">
       <input type="url" name="link_url" placeholder="https://…">

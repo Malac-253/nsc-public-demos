@@ -14,6 +14,7 @@ from .models import (
     Announcement,
     Attendance,
     Comment,
+    Event,
     Expense,
     ExpenseShare,
     ICON_CHOICES,
@@ -21,10 +22,12 @@ from .models import (
     InfoPage,
     ItineraryActivity,
     Membership,
+    Notification,
     Poll,
     PollOption,
     Post,
     PostImage,
+    PostVideo,
     PostReaction,
     Settlement,
     TaskItem,
@@ -65,6 +68,49 @@ def _me(request, trip: Trip) -> Membership:
 def _profile(request) -> UserProfile:
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     return profile
+
+
+def _notify_everyone(trip: Trip, text: str, *, actor: Membership | None = None, link_path: str = ""):
+    members = trip.party.memberships.exclude(is_ai=True)
+    if actor:
+        members = members.exclude(pk=actor.pk)
+    Notification.objects.bulk_create([
+        Notification(trip=trip, recipient=m, actor=actor, text=text, link_path=link_path)
+        for m in members
+    ])
+
+
+@login_required
+def member_link(request, member_id: int):
+    """One link everywhere: your own icon -> settings, anyone else's -> their posts."""
+    trip = _trip(request)
+    me = _me(request, trip)
+    target = get_object_or_404(Membership, pk=member_id, party=trip.party)
+    if target.id == me.id:
+        return redirect("settings")
+    return redirect(f"{reverse('feed')}?member={target.id}")
+
+
+@login_required
+def notifications_list(request):
+    trip = _trip(request)
+    me = _me(request, trip)
+    if request.method == "POST" and request.POST.get("action") == "mark_all_read":
+        Notification.objects.filter(recipient=me, read_at__isnull=True).update(read_at=timezone.now())
+        return redirect("notifications")
+    notifs = Notification.objects.filter(recipient=me).select_related("actor")
+    return render(request, "party/notifications.html", {"notifs": notifs})
+
+
+@login_required
+def notif_open(request, notif_id: int):
+    trip = _trip(request)
+    me = _me(request, trip)
+    n = get_object_or_404(Notification, pk=notif_id, recipient=me)
+    if not n.read_at:
+        n.read_at = timezone.now()
+        n.save(update_fields=["read_at"])
+    return redirect(n.link_path or "notifications")
 
 
 # ---------------------------------------------------------------- trips home
@@ -575,6 +621,75 @@ def budget_confirm(request):
 
 
 @login_required
+def budget_delete(request, expense_id: int):
+    trip = _trip(request)
+    me = _me(request, trip)
+    exp = get_object_or_404(Expense, pk=expense_id, trip=trip)
+    if not _can_edit_expense(me, exp):
+        raise Http404
+    if request.method == "POST":
+        title = exp.title
+        exp.delete()
+        messages.success(request, f"Deleted “{title}.”")
+        return redirect("budget")
+    return redirect("budget")
+
+
+@login_required
+def budget_backup(request):
+    """Admin-only: snapshot every expense/settlement to a JSON file — a durable
+    backup independent of the database, saved to media storage and downloadable
+    on demand (works with either the local disk or an S3 backend)."""
+    import json
+    from django.core.files.base import ContentFile
+    from django.core.files.storage import default_storage
+    from django.http import HttpResponse
+
+    trip = _trip(request)
+    me = _me(request, trip)
+    if me.role != Membership.ROLE_ADMIN:
+        raise Http404
+
+    def money(x):
+        return str(x) if x is not None else None
+
+    expenses = []
+    for exp in trip.expenses.select_related("payer").prefetch_related("shares__member"):
+        expenses.append({
+            "id": exp.id, "title": exp.title, "amount": money(exp.amount),
+            "payer": exp.payer.display_name, "split_method": exp.split_method,
+            "tags": exp.tags, "incurred_on": str(exp.incurred_on) if exp.incurred_on else None,
+            "shares": [
+                {"member": s.member.display_name, "amount": money(s.amount), "excluded": s.excluded}
+                for s in exp.shares.all()
+            ],
+        })
+    settlements = [
+        {
+            "from": s.from_member.display_name, "to": s.to_member.display_name,
+            "amount": money(s.amount), "status": s.status,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+        }
+        for s in trip.settlements.select_related("from_member", "to_member")
+    ]
+    payload = {
+        "generated_at": timezone.now().isoformat(),
+        "trip": trip.name,
+        "expenses": expenses,
+        "settlements": settlements,
+    }
+    data = json.dumps(payload, indent=2, default=str)
+    fname = f"backups/expenses-{timezone.now():%Y%m%d-%H%M%S}.json"
+    try:
+        default_storage.save(fname, ContentFile(data.encode("utf-8")))
+    except Exception:
+        pass  # storage backend unavailable — still let the admin download the copy below
+    resp = HttpResponse(data, content_type="application/json")
+    resp["Content-Disposition"] = f'attachment; filename="{fname.rsplit("/", 1)[-1]}"'
+    return resp
+
+
+@login_required
 def settle_screen(request):
     trip = _trip(request)
     me = _me(request, trip)
@@ -585,11 +700,17 @@ def settle_screen(request):
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "claim":
+            to_member = get_object_or_404(Membership, pk=int(request.POST["to_member"]), party=trip.party)
+            amount = Decimal(request.POST["amount"])
             Settlement.objects.create(
                 trip=trip, from_member=me,
-                to_member_id=int(request.POST["to_member"]),
-                amount=Decimal(request.POST["amount"]),
+                to_member=to_member,
+                amount=amount,
                 proof=request.FILES.get("proof"),
+            )
+            Notification.notify(
+                trip, to_member, f"{me.shown_name} says they paid you ${amount}.",
+                actor=me, link_path=reverse("settle"),
             )
             messages.success(request, "Marked as paid — waiting for them to confirm.")
         elif action == "confirm":
@@ -597,6 +718,10 @@ def settle_screen(request):
             s.status = Settlement.STATUS_CONFIRMED
             s.confirmed_at = timezone.now()
             s.save(update_fields=["status", "confirmed_at"])
+            Notification.notify(
+                trip, s.from_member, f"{me.shown_name} confirmed your ${s.amount} payment.",
+                actor=me, link_path=reverse("settle"),
+            )
             messages.success(request, "Payment confirmed.")
         elif action == "toggle_simplify" and me.role == Membership.ROLE_ADMIN:
             trip.simplify_debts = not trip.simplify_debts
@@ -855,7 +980,30 @@ def info_page(request, slug: str):
         )
         messages.success(request, "Posted to the feed.")
         return redirect("info_page", slug=page.slug)
-    return render(request, "party/info_page.html", {"page": page, "blocks": _text_blocks(page.body)})
+    return render(request, "party/info_page.html", {
+        "page": page, "blocks": _text_blocks(page.body), "can_edit": page.visible_to(me) and me.is_staff_role,
+    })
+
+
+@login_required
+def info_page_edit(request, slug: str):
+    """Admins & moderators can edit any info page's article body, add links, etc."""
+    trip = _trip(request)
+    me = _me(request, trip)
+    page = get_object_or_404(InfoPage, trip=trip, slug=slug)
+    if not me.is_staff_role:
+        raise Http404
+    if request.method == "POST":
+        page.title = request.POST.get("title", page.title).strip() or page.title
+        page.subtitle = request.POST.get("subtitle", "").strip()
+        page.body = request.POST.get("body", "").strip()
+        page.link_url = request.POST.get("link_url", "").strip()
+        page.link_label = request.POST.get("link_label", "").strip()
+        page.updated_by = me
+        page.save()
+        messages.success(request, f"Updated “{page.title}.”")
+        return redirect("info_page", slug=page.slug)
+    return render(request, "party/info_page_edit.html", {"page": page})
 
 
 @login_required
@@ -863,6 +1011,15 @@ def tools(request):
     trip = _trip(request)
     _me(request, trip)
     return render(request, "party/tools.html", {})
+
+
+@login_required
+def picker_tool(request):
+    """Random party member picker — spins client-side, optional per-person weight."""
+    trip = _trip(request)
+    _me(request, trip)
+    members = list(trip.party.memberships.exclude(is_ai=True).select_related("user").order_by("display_name"))
+    return render(request, "party/picker.html", {"members": members})
 
 
 # ---------------------------------------------------------------- feed
@@ -879,14 +1036,25 @@ def feed(request):
             text = request.POST.get("text", "").strip()
             if text:
                 Comment.objects.create(post=post, author=me, text=text)
+                if post.author_id != me.id:
+                    Notification.notify(
+                        trip, post.author, f"{me.shown_name} commented on your post.",
+                        actor=me, link_path=f"{reverse('feed')}?member={post.author_id}",
+                    )
             return redirect(request.POST.get("next") or "feed")
         if action == "announce" and me.is_staff_role:
+            audience_id = request.POST.get("audience") or None
             Announcement.objects.create(
                 trip=trip, author=me,
                 text=request.POST["text"].strip(),
-                audience_id=request.POST.get("audience") or None,
+                audience_id=audience_id,
                 pinned=bool(request.POST.get("pinned")),
             )
+            if audience_id:
+                target = get_object_or_404(Membership, pk=audience_id, party=trip.party)
+                Notification.notify(trip, target, f"{me.shown_name} sent you a notice: {request.POST['text'].strip()[:80]}", actor=me, link_path=reverse("feed"))
+            else:
+                _notify_everyone(trip, f"Announcement: {request.POST['text'].strip()[:80]}", actor=me, link_path=reverse("feed"))
             messages.success(request, "Announcement posted.")
             return redirect("feed")
         if action in ("archive_post", "delete_post"):
@@ -910,13 +1078,16 @@ def feed(request):
             return redirect(request.POST.get("next") or "feed")
 
     posts = trip.posts.filter(archived=False).select_related("author", "poll").prefetch_related(
-        "comments__author", "extra_images", "poll__options__votes", "reactions",
+        "comments__author", "extra_images", "videos", "poll__options__votes", "reactions",
     )
     member_filter = request.GET.get("member")
     filtered_member = None
     if member_filter:
+        from django.db.models import Q
         filtered_member = get_object_or_404(Membership, pk=member_filter, party=trip.party)
-        posts = posts.filter(author=filtered_member)
+        # Show their own posts *and* posts they've weighed in on, so a profile
+        # view surfaces the full trail of what they've said, not just what they authored.
+        posts = posts.filter(Q(author=filtered_member) | Q(comments__author=filtered_member)).distinct()
     kind = request.GET.get("kind", "")
     if kind in dict(Post.KIND_CHOICES):
         posts = posts.filter(kind=kind)
@@ -952,6 +1123,10 @@ def feed(request):
                 post.poll_preview_options = []
         post.can_archive = post.author_id == me.id or me.is_staff_role
         post.can_delete = post.author_id == me.id or me.role == Membership.ROLE_ADMIN
+        post.highlight_author = bool(filtered_member and post.author_id == filtered_member.id)
+        if filtered_member:
+            for c in post.comments.all():
+                c.is_highlighted = c.author_id == filtered_member.id
 
     members = trip.party.memberships.exclude(is_ai=True).all()
     return render(request, "party/feed.html", {
@@ -1006,6 +1181,13 @@ def feed_new(request):
             messages.success(request, "Poll posted to the feed.")
             return redirect("poll_detail", poll_id=poll.id)
 
+        event = None
+        new_event_name = request.POST.get("new_event_name", "").strip()
+        if new_event_name:
+            event = Event.objects.create(trip=trip, name=new_event_name, created_by=me)
+        elif request.POST.get("event_id"):
+            event = Event.objects.filter(trip=trip, pk=request.POST["event_id"]).first()
+
         post = Post.objects.create(
             trip=trip, author=me,
             kind=request.POST.get("kind", Post.KIND_BLAST),
@@ -1016,9 +1198,15 @@ def feed_new(request):
             link_label=request.POST.get("link_label", "").strip() or "Open link",
             bg_color=request.POST.get("bg_color", ""),
             suggested_by_note=request.POST.get("suggested_by_note", "").strip(),
+            event=event,
         )
         for f in request.FILES.getlist("more_images")[:8]:
             PostImage.objects.create(post=post, image=f)
+        for i, f in enumerate(request.FILES.getlist("videos")[:3]):
+            PostVideo.objects.create(post=post, video=f, order=i)
+        if post.videos.exists() and post.kind == Post.KIND_BLAST:
+            post.kind = Post.KIND_PHOTO
+            post.save(update_fields=["kind"])
         messages.success(request, "Posted to the feed.")
         return redirect("feed")
 
@@ -1026,6 +1214,7 @@ def feed_new(request):
         "kind_choices": [k for k in Post.KIND_CHOICES if k[0] != Post.KIND_POLL],
         "bg_choices": Post.BG_CHOICES,
         "trip": trip,
+        "events": trip.events.all(),
     })
 
 
@@ -1047,6 +1236,11 @@ def react(request):
     else:
         PostReaction.objects.create(post=post, member=me, emoji=emoji)
         mine = True
+        if post.author_id != me.id:
+            Notification.notify(
+                trip, post.author, f"{me.shown_name} reacted {emoji} to your post.",
+                actor=me, link_path=f"{reverse('feed')}?member={post.author_id}",
+            )
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({"mine": mine, "summary": post.reaction_summary()})
     return redirect(request.POST.get("next") or "feed")
@@ -1054,14 +1248,52 @@ def react(request):
 
 @login_required
 def photos(request):
-    """Live photo wall: every image posted, newest first, downloadable."""
+    """Live photo & video wall: every media posted, newest first."""
     trip = _trip(request)
     _me(request, trip)
+    posts = trip.posts.filter(archived=False).select_related("author", "event").prefetch_related(
+        "extra_images", "videos",
+    )
+    event_filter = request.GET.get("event")
+    filtered_event = None
+    if event_filter:
+        filtered_event = get_object_or_404(Event, pk=event_filter, trip=trip)
+        posts = posts.filter(event=filtered_event)
     entries = []
-    for post in trip.posts.select_related("author").prefetch_related("extra_images"):
-        for img in post.all_images():
-            entries.append({"image": img, "post": post})
-    return render(request, "party/photos.html", {"entries": entries})
+    for post in posts:
+        for item in post.all_media():
+            entries.append({"post": post, **item})
+    entries.sort(key=lambda e: e["post"].created_at, reverse=True)
+    return render(request, "party/photos.html", {
+        "entries": entries,
+        "events": trip.events.all(),
+        "filtered_event": filtered_event,
+    })
+
+
+@login_required
+def events_list(request):
+    """Admin/mod-managed list of named happenings that photos/videos tag into."""
+    trip = _trip(request)
+    me = _me(request, trip)
+    if request.method == "POST" and me.is_staff_role:
+        name = request.POST.get("name", "").strip()
+        if name:
+            raw_date = request.POST.get("date", "")
+            event_date = None
+            if raw_date:
+                try:
+                    event_date = dt.date.fromisoformat(raw_date)
+                except ValueError:
+                    event_date = None
+            Event.objects.create(trip=trip, name=name, date=event_date, created_by=me)
+            messages.success(request, f"Created event “{name}.”")
+        return redirect("events_list")
+    rows = []
+    for ev in trip.events.all():
+        count = sum(len(p.all_media()) for p in ev.posts.filter(archived=False).prefetch_related("extra_images", "videos"))
+        rows.append({"event": ev, "media_count": count})
+    return render(request, "party/events.html", {"rows": rows, "is_staff": me.is_staff_role})
 
 
 @login_required
@@ -1158,6 +1390,7 @@ def party(request):
                     and new_role in (Membership.ROLE_MODERATOR, Membership.ROLE_MEMBER)):
                 target.role = new_role
                 target.save(update_fields=["role"])
+                Notification.notify(trip, target, f"You're now a {target.get_role_display()}.", actor=me, link_path=reverse("party"))
                 messages.success(request, f"{target.shown_name} is now {target.get_role_display()}.")
         return redirect("party")
 

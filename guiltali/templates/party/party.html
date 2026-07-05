@@ -23,7 +23,7 @@
 
 <div class="card">
   {% for r in rows %}
-  <a class="member" href="{% url 'feed' %}?member={{ r.m.id }}" data-snd="rustle">
+  <a class="member" href="{% url 'member_link' r.m.id %}" data-snd="rustle">
     <span class="av" style="border:2px solid {{ r.m.swatch }}55;background:{{ r.m.swatch }}14">
       <img src="{{ r.m.icon_url }}" alt="">
     </span>

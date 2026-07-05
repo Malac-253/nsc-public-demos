@@ -211,6 +211,22 @@ class Trip(models.Model):
         return _dt.datetime.combine(self.end_date + _dt.timedelta(days=2), _dt.time(20, 0))
 
 
+class Event(models.Model):
+    """A named happening (bonfire night, hike day) that photos/videos can be tagged to."""
+
+    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="events")
+    name = models.CharField(max_length=140)
+    date = models.DateField(null=True, blank=True)
+    created_by = models.ForeignKey(Membership, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date", "-created_at"]
+
+    def __str__(self):
+        return self.name
+
+
 class TripPhoto(models.Model):
     """Gallery photo for the stay (main picture + gallery, Airbnb-style)."""
 
@@ -608,6 +624,10 @@ class Post(models.Model):
         help_text="Polls surface in the feed through their linked post.",
     )
     archived = models.BooleanField(default=False)
+    event = models.ForeignKey(
+        Event, null=True, blank=True, on_delete=models.SET_NULL, related_name="posts",
+        help_text="Optional: tag this post (usually a photo/video) to an event.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -622,6 +642,17 @@ class Post(models.Model):
             out.append(self.image)
         out.extend(pi.image for pi in self.extra_images.all())
         return out
+
+    def all_media(self) -> list[dict]:
+        """Images and videos attached to this post, in display order."""
+        items: list[dict] = []
+        if self.image:
+            items.append({"kind": "image", "file": self.image})
+        for pi in self.extra_images.all():
+            items.append({"kind": "image", "file": pi.image})
+        for pv in self.videos.all():
+            items.append({"kind": "video", "file": pv.video})
+        return items
 
     def reaction_summary(self):
         """[{'emoji': '🔥', 'count': 2}, ...] ordered by count desc."""
@@ -639,6 +670,17 @@ class PostImage(models.Model):
 
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="extra_images")
     image = models.ImageField(upload_to="posts/")
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+
+class PostVideo(models.Model):
+    """Videos attached to a feed post."""
+
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="videos")
+    video = models.FileField(upload_to="posts/videos/")
     order = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
@@ -677,6 +719,8 @@ class InfoPage(models.Model):
     subtitle = models.CharField(max_length=200, blank=True)
     kind = models.CharField(max_length=8, choices=KIND_CHOICES, default=KIND_NOTE)
     body = models.TextField(help_text="Plain text; blank lines split paragraphs, lines starting with '- ' become list items.")
+    link_url = models.URLField(blank=True, help_text="Optional 'read more' / source link shown at the end of the article.")
+    link_label = models.CharField(max_length=80, blank=True, help_text="Button text for link_url, e.g. 'Original recipe'.")
     restricted = models.BooleanField(default=False)
     allowed_members = models.ManyToManyField(
         Membership, blank=True, related_name="visible_info_pages",
@@ -716,3 +760,26 @@ class PostReaction(models.Model):
 
     class Meta:
         unique_together = [("post", "member", "emoji")]
+
+
+class Notification(models.Model):
+    """In-app notification bell entry — no push infra required."""
+
+    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="notifications")
+    recipient = models.ForeignKey(Membership, on_delete=models.CASCADE, related_name="notifications")
+    actor = models.ForeignKey(Membership, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    text = models.CharField(max_length=240)
+    link_path = models.CharField(max_length=200, blank=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    @staticmethod
+    def notify(trip: Trip, recipient: Membership, text: str, *, actor: Membership | None = None, link_path: str = ""):
+        if actor and actor.id == recipient.id:
+            return None
+        return Notification.objects.create(
+            trip=trip, recipient=recipient, actor=actor, text=text, link_path=link_path,
+        )

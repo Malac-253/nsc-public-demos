@@ -32,7 +32,7 @@
       {{ r.exp.title }}
       <div class="tags">
         {% if scope == 'group' and r.exp.payer_id == me.id %}<span class="you-tag">You paid</span> · {% endif %}
-        {{ r.exp.payer.shown_name }}{% if r.exp.incurred_on %} · {{ r.exp.incurred_on|date:"M j" }}{% endif %}
+        {{ r.exp.payer.shown_name }}{% if r.exp.payer.real_name_sub %} <span style="opacity:.7">({{ r.exp.payer.real_name_sub }})</span>{% endif %}{% if r.exp.incurred_on %} · {{ r.exp.incurred_on|date:"M j" }}{% endif %}
         {% if scope == 'group' and r.my_share and r.exp.payer_id != me.id %} · your share ${{ r.my_share }}{% endif %}
         {% for t in r.tag_labels %} · {{ t }}{% endfor %}
       </div>

@@ -61,7 +61,10 @@ PEOPLE = [
     ("squire", "Party AI Squire", Membership.ROLE_MEMBER, None, "lantern", "#7a2e35"),
 ]
 
-ALIASES = {"malachi": "The Quartermaster"}
+# Seeded nicknames — shown big everywhere instead of the real name (real name
+# shows tiny underneath). Only applied on first creation; members can change
+# their own nickname later from Settings, which sticks after that.
+NICKNAMES = {"malachi": "The Quartermaster"}
 
 TRAVEL_NOTES = {
     "kayla": ("May only make it for the weekend for financial reasons — will confirm.", Membership.VIS_EVERYONE),
@@ -375,7 +378,8 @@ class Command(BaseCommand):
                 m.icon = icon
             if not m.color:
                 m.color = color
-            m.alias = ALIASES.get(username, m.alias)
+            if not m.nickname and username in NICKNAMES:
+                m.nickname = NICKNAMES[username]
             m.is_ai = username == "squire"
             if username in TRAVEL_NOTES and not m.travel_note:
                 m.travel_note, m.travel_note_visibility = TRAVEL_NOTES[username]
@@ -479,15 +483,20 @@ class Command(BaseCommand):
             ])
 
         static_img = Path(settings.BASE_DIR) / "static" / "img"
-        if not Post.objects.filter(kind=Post.KIND_PHOTO).exists():
-            for author_username, caption, filename in BOARD_PHOTOS:
-                src = static_img / filename
+        # Re-sync demo feed photos every deploy — Postgres survives redeploys but
+        # media files on Render's ephemeral disk do not.
+        for author_username, caption, filename in BOARD_PHOTOS:
+            author = members[author_username]
+            post = Post.objects.filter(
+                trip=trip, kind=Post.KIND_PHOTO, author=author, text=caption,
+            ).first()
+            if not post:
                 post = Post.objects.create(
-                    trip=trip, author=members[author_username],
-                    kind=Post.KIND_PHOTO, text=caption,
+                    trip=trip, author=author, kind=Post.KIND_PHOTO, text=caption,
                 )
-                if src.exists():
-                    post.image.save(filename, ContentFile(src.read_bytes()), save=True)
+            src = static_img / filename
+            if src.exists():
+                post.image.save(filename, ContentFile(src.read_bytes()), save=True)
 
         for section, items in GROCERY_SECTIONS.items():
             tl, created = TaskList.objects.get_or_create(

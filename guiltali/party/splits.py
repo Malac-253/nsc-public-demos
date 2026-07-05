@@ -183,8 +183,14 @@ def raw_pairwise_debts(trip: Trip) -> list[tuple[int, int, Decimal]]:
     return rows
 
 
+PIE_PALETTE = [
+    "#2f7d4f", "#c47a3d", "#3f7fbf", "#7a5fa0", "#b0533b",
+    "#4d8f8b", "#c9a441", "#5d7f35", "#a83a2a", "#7a2e35",
+]
+
+
 def tag_totals(trip: Trip) -> list[dict]:
-    """Spending grouped by tag for the budget chart."""
+    """Spending grouped by tag for the budget chart (with pie-chart slice data)."""
     totals: dict[str, Decimal] = {}
     for exp in trip.expenses.all():
         tags = exp.tags or ["misc"]
@@ -199,6 +205,14 @@ def tag_totals(trip: Trip) -> list[dict]:
         for t, amt in totals.items()
     ]
     rows.sort(key=lambda r: r["amount"], reverse=True)
+    cursor = 0.0
+    for i, r in enumerate(rows):
+        r["color"] = PIE_PALETTE[i % len(PIE_PALETTE)]
+        r["pie_start"] = round(cursor, 2)
+        cursor += float(r["amount"]) / float(grand) * 100
+        r["pie_end"] = round(cursor, 2)
+    if rows:
+        rows[-1]["pie_end"] = 100
     return rows
 
 

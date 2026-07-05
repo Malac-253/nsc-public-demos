@@ -1,35 +1,58 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Photo wall{% endblock %}
+{% block title %}Photo & video wall{% endblock %}
 {% block extra_css %}
 .wall{columns:2;column-gap:10px}
 .wall .ph{break-inside:avoid;margin-bottom:10px;border-radius:13px;overflow:hidden;
   border:2px solid var(--line);background:var(--card);box-shadow:var(--shadow);
   animation:pageIn .4s ease both}
-.wall .ph img{width:100%;display:block}
+.wall .ph img,.wall .ph video{width:100%;display:block;background:#000}
 .wall .ph .meta{display:flex;align-items:center;gap:5px;padding:5px 8px;font-size:9.5px;color:var(--muted)}
 .wall .ph .meta img{width:12px;height:12px;image-rendering:pixelated;border:none;flex:none}
 .wall .ph .meta span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wall .ph .meta .dl{margin-left:auto;font-weight:700;flex:none;color:var(--green-deep)}
+.wall .ph .kind-pill{position:absolute;top:6px;left:6px;font-size:9px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.04em;background:rgba(0,0,0,.55);color:#fff;
+  padding:2px 6px;border-radius:6px}
+.wall .ph .media-wrap{position:relative}
+.chips a{border:2px solid var(--line);color:var(--ink)}
+.chips a.on{background:var(--green);border-color:var(--green-deep);color:#fff}
 {% endblock %}
 {% block content %}
 <a href="{% url 'feed' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Feed</a>
-<h1 style="font-size:19px;font-weight:800;letter-spacing:-.02em;margin:8px 0 4px">Photo wall</h1>
-<p class="muted" style="font-size:12.5px;margin-bottom:12px">Every picture posted on the trip, newest first. Tap Save to download.</p>
+<h1 style="font-size:19px;font-weight:800;letter-spacing:-.02em;margin:8px 0 4px">Photo &amp; video wall</h1>
+<p class="muted" style="font-size:12.5px;margin-bottom:12px">Every picture and clip posted on the trip, newest first. Tap Save to download.</p>
+
+{% if events %}
+<div class="chips" style="display:flex;gap:7px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px">
+  <a href="{% url 'photos' %}" class="btn ghost small {% if not filtered_event %}on{% endif %}" style="flex:none" data-snd="rustle">All</a>
+  {% for ev in events %}
+  <a href="{% url 'photos' %}?event={{ ev.id }}" class="btn ghost small {% if filtered_event.id == ev.id %}on{% endif %}" style="flex:none" data-snd="rustle">{{ ev.name }}</a>
+  {% endfor %}
+  <a href="{% url 'events_list' %}" class="btn ghost small" style="flex:none" data-snd="rustle">Manage events</a>
+</div>
+{% endif %}
 
 <div class="wall">
   {% for e in entries %}
   <div class="ph">
-    <img src="{{ e.image.url }}" loading="lazy" alt="">
+    <div class="media-wrap">
+      {% if e.kind == "video" %}
+      <span class="kind-pill">Video</span>
+      <video src="{{ e.file.url }}" controls playsinline preload="metadata"></video>
+      {% else %}
+      <img src="{{ e.file.url }}" loading="lazy" alt="">
+      {% endif %}
+    </div>
     <div class="meta">
       <img src="{{ e.post.author.icon_url }}" alt="">
       <span>{{ e.post.author.shown_name }}</span>
-      <span class="muted">· {{ e.post.created_at|timesince }} ago</span>
-      <a class="dl" href="{{ e.image.url }}" download data-snd="snap">Save</a>
+      <span class="muted">· {{ e.post.created_at|timesince }} ago{% if e.post.event %} · {{ e.post.event.name }}{% endif %}</span>
+      <a class="dl" href="{{ e.file.url }}" download data-snd="snap">Save</a>
     </div>
   </div>
   {% empty %}
-  <p class="muted">No photos yet — post the first one from the feed.</p>
+  <p class="muted">Nothing here yet — post the first photo or video from the feed.</p>
   {% endfor %}
 </div>
 {% endblock %}

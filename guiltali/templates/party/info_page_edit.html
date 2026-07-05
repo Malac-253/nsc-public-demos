@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Edit {{ page.title }}{% endblock %}
+{% block content %}
+<a href="{% url 'info_page' page.slug %}" class="muted" style="font-size:12.5px" data-snd="rustle">← {{ page.title }}</a>
+<div class="card wood" style="margin-top:8px">
+  <h2><img src="{% static 'img/icons/fire.png' %}" alt="">Edit article</h2>
+  <form method="post">
+    {% csrf_token %}
+    <label>Title</label>
+    <input type="text" name="title" value="{{ page.title }}" maxlength="160" required>
+    <label>Subtitle</label>
+    <input type="text" name="subtitle" value="{{ page.subtitle }}" maxlength="200">
+    <label>Body <span class="muted" style="text-transform:none;font-weight:500">— blank lines split paragraphs, lines starting with "- " become a bullet list</span></label>
+    <textarea name="body" rows="12">{{ page.body }}</textarea>
+    <label>Read-more link (optional)</label>
+    <div class="formrow">
+      <input type="url" name="link_url" value="{{ page.link_url }}" placeholder="https://…">
+      <input type="text" name="link_label" value="{{ page.link_label }}" placeholder="Button label" maxlength="80">
+    </div>
+    <button class="btn" type="submit" style="width:100%;margin-top:14px" data-snd="hoot">Save changes</button>
+  </form>
+</div>
+{% endblock %}
