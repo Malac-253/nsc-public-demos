@@ -28,67 +28,132 @@
 html{-webkit-text-size-adjust:100%}
 body{
   font-family:"Plus Jakarta Sans",-apple-system,"Segoe UI",sans-serif;
-  background:var(--bg);color:var(--ink);line-height:1.55;
+  background:#d8e0d4;color:var(--ink);line-height:1.55;
   padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
   min-height:100vh;
   position:relative;
   isolation:isolate;
-  background-image:
-    linear-gradient(180deg,rgba(212,230,214,.45) 0%,transparent 120px),
-    radial-gradient(rgba(47,125,79,.05) 1px,transparent 1px);
-  background-size:100% 100%,22px 22px;
-  background-position:0 0,0 0;
-  animation:driftDots 34s linear infinite;
 }
-@keyframes driftDots{from{background-position:0 0,0 0}to{background-position:0 0,220px 220px}}
-/* slow color wash — very low opacity, shifts through meadow tones */
-body::after{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
-  background:linear-gradient(125deg,
-    rgba(47,125,79,.07) 0%, rgba(201,164,65,.06) 28%,
-    rgba(63,127,191,.05) 55%, rgba(93,127,53,.06) 78%, rgba(47,125,79,.07) 100%);
-  background-size:240% 240%;
-  animation:colorWash 48s ease-in-out infinite;
-  mix-blend-mode:multiply;
+/* ---------- animated nature sky (forest / fall / camping palette) ---------- */
+.nature-bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+  background:linear-gradient(180deg,#dce8df 0%,#e8e2d8 38%,#dde4ec 62%,#e2eadc 100%);
+  animation:skyBaseShift 42s ease-in-out infinite alternate}
+@keyframes skyBaseShift{
+  0%{background:linear-gradient(180deg,#dce8df 0%,#e8e2d8 38%,#dde4ec 62%,#e2eadc 100%)}
+  33%{background:linear-gradient(180deg,#d6e2ec 0%,#eadfd2 35%,#dce6df 58%,#e0e6d4 100%)}
+  66%{background:linear-gradient(180deg,#dfead8 0%,#e6ddd0 40%,#d8e0ea 65%,#dee8d2 100%)}
+  100%{background:linear-gradient(180deg,#d8e4e8 0%,#e8e0d4 38%,#dde8df 62%,#e4e6d8 100%)}
 }
-@keyframes colorWash{
-  0%,100%{background-position:0% 40%;opacity:.55}
-  50%{background-position:100% 60%;opacity:.85}
+/* slow rotating color wash — faded light-show behind the UI */
+.nature-bg .light-show{position:absolute;inset:-25%;pointer-events:none;
+  background:conic-gradient(from 0deg at 50% 50%,
+    rgba(47,125,79,.14) 0deg, rgba(74,127,191,.12) 72deg, rgba(196,122,61,.13) 144deg,
+    rgba(168,58,42,.10) 216deg, rgba(201,164,65,.12) 288deg, rgba(47,125,79,.14) 360deg);
+  filter:blur(70px);opacity:.48;mix-blend-mode:soft-light;
+  animation:lightShowSpin 75s linear infinite, lightShowPulse 22s ease-in-out infinite alternate}
+@keyframes lightShowSpin{to{transform:rotate(360deg)}}
+@keyframes lightShowPulse{0%{opacity:.32}50%{opacity:.55}100%{opacity:.40}}
+.nature-bg .cloud-layer{position:absolute;inset:-35%;filter:blur(52px);opacity:.42;
+  will-change:transform,opacity,filter;
+  animation:cloudDrift ease-in-out infinite alternate, cloudGlow 26s ease-in-out infinite}
+@keyframes cloudGlow{
+  0%,100%{opacity:.36;filter:blur(54px) hue-rotate(0deg)}
+  25%{opacity:.50;filter:blur(48px) hue-rotate(6deg)}
+  50%{opacity:.40;filter:blur(58px) hue-rotate(-5deg)}
+  75%{opacity:.48;filter:blur(50px) hue-rotate(4deg)}
 }
-/* soft drifting light blobs behind everything, purely decorative */
-body::before{content:"";position:fixed;inset:-10% -10%;z-index:-1;pointer-events:none;
+.nature-bg .cloud-forest{
   background:
-    radial-gradient(340px 340px at 12% 18%,rgba(47,125,79,.10),transparent 65%),
-    radial-gradient(300px 300px at 85% 30%,rgba(201,164,65,.09),transparent 65%),
-    radial-gradient(360px 360px at 70% 85%,rgba(63,127,191,.07),transparent 65%),
-    radial-gradient(280px 280px at 20% 80%,rgba(122,46,53,.06),transparent 65%);
-  animation:blobDrift 26s ease-in-out infinite alternate, blobTint 55s ease-in-out infinite;
-  filter:blur(4px);
+    radial-gradient(ellipse 58% 48% at 18% 28%,rgba(47,125,79,.34),transparent 68%),
+    radial-gradient(ellipse 52% 44% at 82% 22%,rgba(61,107,82,.30),transparent 66%),
+    radial-gradient(ellipse 46% 52% at 62% 78%,rgba(93,127,53,.28),transparent 64%),
+    radial-gradient(ellipse 40% 38% at 8% 82%,rgba(58,90,68,.26),transparent 70%);
+  animation-duration:72s;animation-delay:-12s}
+.nature-bg .cloud-sky{
+  background:
+    radial-gradient(ellipse 54% 46% at 72% 35%,rgba(74,127,191,.32),transparent 67%),
+    radial-gradient(ellipse 48% 42% at 28% 58%,rgba(90,143,184,.28),transparent 65%),
+    radial-gradient(ellipse 44% 50% at 88% 72%,rgba(106,152,198,.24),transparent 68%),
+    radial-gradient(ellipse 38% 36% at 42% 18%,rgba(130,170,210,.22),transparent 72%);
+  mix-blend-mode:soft-light;animation-duration:96s;animation-direction:alternate-reverse;
+  animation-delay:-28s}
+.nature-bg .cloud-autumn{
+  background:
+    radial-gradient(ellipse 56% 50% at 35% 42%,rgba(196,122,61,.32),transparent 66%),
+    radial-gradient(ellipse 50% 44% at 78% 58%,rgba(201,164,65,.30),transparent 65%),
+    radial-gradient(ellipse 46% 48% at 15% 68%,rgba(168,58,42,.26),transparent 68%),
+    radial-gradient(ellipse 42% 40% at 55% 12%,rgba(212,145,78,.28),transparent 70%),
+    radial-gradient(ellipse 36% 34% at 92% 38%,rgba(122,46,53,.22),transparent 72%);
+  mix-blend-mode:multiply;opacity:.36;animation-duration:84s;animation-delay:-40s}
+.nature-bg .cloud-earth{
+  background:
+    radial-gradient(ellipse 60% 52% at 48% 88%,rgba(107,79,58,.28),transparent 66%),
+    radial-gradient(ellipse 48% 44% at 22% 48%,rgba(90,64,48,.24),transparent 68%),
+    radial-gradient(ellipse 44% 40% at 68% 45%,rgba(139,105,74,.22),transparent 70%),
+    radial-gradient(ellipse 38% 36% at 85% 15%,rgba(61,74,66,.20),transparent 72%);
+  mix-blend-mode:multiply;opacity:.32;filter:blur(64px);animation-duration:108s;
+  animation-direction:alternate-reverse;animation-delay:-55s}
+.nature-bg .cloud-mist{
+  inset:-15%;filter:blur(28px);opacity:.30;animation-duration:64s;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 40%,rgba(244,246,240,.45),transparent 72%),
+    radial-gradient(ellipse 55% 45% at 20% 70%,rgba(232,236,228,.32),transparent 68%),
+    radial-gradient(ellipse 50% 42% at 80% 30%,rgba(228,234,240,.28),transparent 70%)}
+@keyframes cloudDrift{
+  0%{transform:translate(0,0) scale(1) rotate(0deg)}
+  25%{transform:translate(5%,-3%) scale(1.07) rotate(1.2deg)}
+  50%{transform:translate(-4%,4%) scale(1.04) rotate(-.8deg)}
+  75%{transform:translate(3%,2%) scale(1.09) rotate(.6deg)}
+  100%{transform:translate(-2%,-5%) scale(1.05) rotate(-1deg)}
 }
-@keyframes blobDrift{
-  0%{transform:translate(0,0) scale(1)}
-  50%{transform:translate(2%,-3%) scale(1.06)}
-  100%{transform:translate(-3%,2%) scale(1.02)}
+/* grain + shifting color wash — still behind all UI */
+body::after{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(rgba(47,125,79,.04) 1px,transparent 1px),
+    linear-gradient(125deg,
+      rgba(47,125,79,.06) 0%, rgba(196,122,61,.07) 22%, rgba(74,127,191,.06) 45%,
+      rgba(168,58,42,.05) 68%, rgba(201,164,65,.07) 85%, rgba(93,127,53,.06) 100%);
+  background-size:24px 24px,400% 400%;
+  animation:grainDrift 40s linear infinite,colorWash 32s ease-in-out infinite;
+  mix-blend-mode:multiply;opacity:.55}
+@keyframes grainDrift{from{background-position:0 0,0 0}to{background-position:0 0,320px 320px}}
+@keyframes colorWash{
+  0%,100%{background-position:0 0,0% 30%;opacity:.42}
+  33%{background-position:0 0,50% 70%;opacity:.58}
+  66%{background-position:0 0,100% 40%;opacity:.48}
 }
-@keyframes blobTint{
-  0%,100%{filter:blur(4px) hue-rotate(0deg) saturate(1)}
-  33%{filter:blur(4px) hue-rotate(12deg) saturate(1.05)}
-  66%{filter:blur(4px) hue-rotate(-10deg) saturate(.98)}
+/* warm haze — still behind UI */
+body::before{content:"";position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 45%,transparent 35%,rgba(61,74,66,.06) 100%),
+    radial-gradient(ellipse 120% 80% at 50% 100%,rgba(107,79,58,.08),transparent 55%),
+    radial-gradient(ellipse 80% 60% at 20% 20%,rgba(74,127,191,.05),transparent 60%),
+    radial-gradient(ellipse 70% 55% at 85% 75%,rgba(196,122,61,.05),transparent 58%);
+  animation:hazePulse 28s ease-in-out infinite alternate}
+@keyframes hazePulse{
+  0%{opacity:.45;filter:hue-rotate(0deg)}
+  100%{opacity:.72;filter:hue-rotate(8deg)}
 }
-/* drifting leaf/spore particles + soft dots */
-.particle,.particle-dot{position:fixed;z-index:-1;pointer-events:none;top:-40px}
-.particle{font-size:16px;opacity:.45;animation-name:fallDrift;
-  animation-timing-function:linear;animation-iteration-count:infinite}
+/* particle rain overlays ALL page chrome (buttons, nav, cards) — clicks pass through */
+.particle-rain{position:fixed;inset:0;z-index:70;pointer-events:none;overflow:visible}
+.particle,.particle-dot{position:absolute;pointer-events:none;top:-40px}
+.particle{font-size:16px;opacity:.58;animation-name:fallDrift;
+  animation-timing-function:linear;animation-iteration-count:infinite;
+  text-shadow:0 0 8px rgba(255,255,255,.35)}
 .particle-dot{border-radius:50%;animation-name:fallDrift;
-  animation-timing-function:linear;animation-iteration-count:infinite}
+  animation-timing-function:linear;animation-iteration-count:infinite;
+  box-shadow:0 0 6px rgba(255,255,255,.25)}
 @keyframes fallDrift{
   from{transform:translate(0,0) rotate(0deg)}
   to{transform:translate(var(--drift,40px),115vh) rotate(340deg)}
 }
 @media (prefers-reduced-motion:reduce){
-  body,body::before,body::after,.particle,.particle-dot{animation:none !important}
+  body,body::before,body::after,.nature-bg,.nature-bg .cloud-layer,.nature-bg .light-show,
+  .particle,.particle-dot{animation:none !important}
 }
 a{color:var(--green);text-decoration:none}
-main{max-width:640px;margin:0 auto;padding:16px 16px 40px;animation:pageIn .35s ease both}
+main{max-width:640px;margin:0 auto;padding:16px 16px 40px;animation:pageIn .35s ease both;
+  position:relative;z-index:10}
 @keyframes pageIn{from{opacity:0}to{opacity:1}}
 .pixelated{image-rendering:pixelated}
 h1.px,h2.px,.px-head{font-family:var(--px);letter-spacing:0}
@@ -128,10 +193,10 @@ header.app .inner{max-width:640px;margin:0 auto;display:flex;align-items:center;
   width:22px;height:22px;border-radius:7px;font-weight:800;color:#6d5200;cursor:pointer;line-height:1}
 
 /* ---------- cards ---------- */
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-  box-shadow:var(--shadow);padding:16px;margin-bottom:14px;position:relative}
+.card{background:rgba(244,246,244,.94);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px;margin-bottom:14px;position:relative;backdrop-filter:blur(3px)}
 .card.wood{border-color:var(--gray-line);
-  background:linear-gradient(180deg,#f6f8f6 0%,#e8ece8 100%)}
+  background:linear-gradient(180deg,rgba(246,248,246,.96) 0%,rgba(232,236,232,.94) 100%)}
 .card h2{font-size:15px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .card h2 .sub{font-weight:600;font-size:12px;color:var(--muted);margin-left:auto}
 .card h2 img{width:32px;height:32px;object-fit:contain;flex:none;
@@ -237,7 +302,7 @@ nav.tabbar a.active img{transform:translateY(-2px) scale(1.15);filter:none;
   display:flex;align-items:center;justify-content:center;border:2px solid #2f5540}
 .bell-menu{position:absolute;top:calc(100% + 10px);right:0;width:290px;max-width:82vw;
   background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);
-  z-index:60;max-height:70vh;overflow-y:auto;display:none;color:var(--ink)}
+  z-index:100;max-height:70vh;overflow-y:auto;display:none;color:var(--ink)}
 .bell-menu.open{display:block;animation:pageIn .15s ease both}
 .bell-menu h4{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);
   padding:10px 12px 4px}
@@ -250,6 +315,15 @@ nav.tabbar a.active img{transform:translateY(-2px) scale(1.15);filter:none;
 </style>
 </head>
 <body {% if user.is_authenticated %}data-sounds="{% if sounds_on %}1{% else %}0{% endif %}"{% endif %}>
+<div class="nature-bg" aria-hidden="true">
+  <div class="light-show"></div>
+  <div class="cloud-layer cloud-forest"></div>
+  <div class="cloud-layer cloud-sky"></div>
+  <div class="cloud-layer cloud-autumn"></div>
+  <div class="cloud-layer cloud-earth"></div>
+  <div class="cloud-layer cloud-mist"></div>
+</div>
+<div id="particle-rain" class="particle-rain" aria-hidden="true"></div>
 {% if user.is_authenticated and trip and me %}
 <header class="app">
   <div class="inner">
@@ -415,37 +489,46 @@ function dismissNote(btn) {
 
 /* ------- drifting leaf/spore particles (decorative, respects reduced-motion) ------- */
 (function () {
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const glyphs = ["🍃", "🌿", "🍂", "🌰", "✿", "·"];
-  const dotColors = [
-    "rgba(47,125,79,.14)", "rgba(201,164,65,.12)", "rgba(63,127,191,.10)",
-    "rgba(93,127,53,.13)", "rgba(196,122,61,.11)",
-  ];
-  function spawn(el, i, total) {
-    el.style.left = (Math.random() * 100) + "vw";
-    el.style.setProperty("--drift", (Math.random() * 100 - 50) + "px");
-    el.style.animationDuration = (14 + Math.random() * 18) + "s";
-    el.style.animationDelay = (-Math.random() * total * 2) + "s";
+  function startRain() {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const rain = document.getElementById("particle-rain");
+    if (!rain) return;
+    const glyphs = ["🍃", "🌿", "🍂", "🌰", "✿", "·"];
+    const dotColors = [
+      "rgba(47,125,79,.22)", "rgba(201,164,65,.20)", "rgba(74,127,191,.18)",
+      "rgba(196,122,61,.19)", "rgba(122,46,53,.18)", "rgba(107,79,58,.17)",
+    ];
+    function spawn(el, i, total) {
+      el.style.left = (Math.random() * 100) + "vw";
+      el.style.setProperty("--drift", (Math.random() * 100 - 50) + "px");
+      el.style.animationDuration = (14 + Math.random() * 18) + "s";
+      el.style.animationDelay = (-Math.random() * total * 2) + "s";
+    }
+    for (let i = 0; i < 16; i++) {
+      const p = document.createElement("span");
+      p.className = "particle";
+      p.textContent = glyphs[i % glyphs.length];
+      p.style.fontSize = (10 + Math.random() * 12) + "px";
+      p.style.opacity = (0.35 + Math.random() * 0.4).toFixed(2);
+      spawn(p, i, 16);
+      rain.appendChild(p);
+    }
+    for (let i = 0; i < 14; i++) {
+      const d = document.createElement("span");
+      d.className = "particle-dot";
+      const size = 3 + Math.random() * 5;
+      d.style.width = size + "px";
+      d.style.height = size + "px";
+      d.style.background = dotColors[i % dotColors.length];
+      d.style.opacity = (0.25 + Math.random() * 0.4).toFixed(2);
+      spawn(d, i, 14);
+      rain.appendChild(d);
+    }
   }
-  for (let i = 0; i < 16; i++) {
-    const p = document.createElement("span");
-    p.className = "particle";
-    p.textContent = glyphs[i % glyphs.length];
-    p.style.fontSize = (10 + Math.random() * 12) + "px";
-    p.style.opacity = (0.25 + Math.random() * 0.35).toFixed(2);
-    spawn(p, i, 16);
-    document.body.appendChild(p);
-  }
-  for (let i = 0; i < 14; i++) {
-    const d = document.createElement("span");
-    d.className = "particle-dot";
-    const size = 3 + Math.random() * 5;
-    d.style.width = size + "px";
-    d.style.height = size + "px";
-    d.style.background = dotColors[i % dotColors.length];
-    d.style.opacity = (0.2 + Math.random() * 0.35).toFixed(2);
-    spawn(d, i, 14);
-    document.body.appendChild(d);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startRain);
+  } else {
+    startRain();
   }
 })();
 

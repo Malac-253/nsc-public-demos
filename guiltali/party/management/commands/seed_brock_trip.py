@@ -203,17 +203,9 @@ ACTIVITIES = [
      "Everyone out by checkout time — see the Stay tab.", ""),
 ]
 
-# (title, amount, payer_username, split_method, day_offset_from_start, is_pre_trip, tags)
-EXPENSES = [
-    ("Cabin rental — 5 nights", "2691.36", "malachi", Expense.SPLIT_EQUAL, -14, True, ["lodging"]),
-    ("Grocery run — Section A (produce & fruit)", "187.42", "abby", Expense.SPLIT_EQUAL, -1, True, ["food"]),
-    ("Grocery run — Section B (proteins & dairy)", "246.80", "sabah", Expense.SPLIT_EQUAL, -1, True, ["food"]),
-    ("Grocery run — Section C (dry goods & snacks)", "198.55", "ethan", Expense.SPLIT_EQUAL, -1, True, ["food"]),
-    ("Gas + propane for the group cars", "64.30", "grant", Expense.SPLIT_EQUAL, 0, False, ["travel"]),
-    ("Firewood & kindling", "38.00", "clarence", Expense.SPLIT_EQUAL, 2, False, ["gear"]),
-    ("Kayak & paddleboard rental", "120.00", "collin", Expense.SPLIT_PRESENT, 3, False, ["fun"]),
-    ("Ice runs (x3)", "27.75", "eden", Expense.SPLIT_EQUAL, 2, False, ["food", "misc"]),
-]
+# Demo seed no longer creates fake expenses — add real ones in the app (Budget → +).
+# To wipe existing demo expenses on Render: python manage.py clear_expenses
+EXPENSES: list[tuple] = []
 
 # Cooper's suggestions (from his texts) — posted on his behalf by Malachi
 COOPER_SUGGESTIONS = [

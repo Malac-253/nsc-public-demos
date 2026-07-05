@@ -216,6 +216,53 @@ def tag_totals(trip: Trip) -> list[dict]:
     return rows
 
 
+def member_owe_explanations(trip: Trip, member_id: int) -> dict:
+    """Who a member owes, with itemized share lines and a simplified settlement plan."""
+    balances = member_balances(trip)
+    members = {m.id: m for m in trip.party.memberships.exclude(is_ai=True)}
+
+    share_lines: dict[int, list[dict]] = {}
+    for exp in trip.expenses.prefetch_related("shares"):
+        if exp.payer_id == member_id:
+            continue
+        share = next(
+            (s for s in exp.shares.all() if s.member_id == member_id and not s.excluded),
+            None,
+        )
+        if share and share.amount > CENT:
+            share_lines.setdefault(exp.payer_id, []).append({
+                "title": exp.title,
+                "amount": share.amount,
+            })
+
+    itemized = []
+    for payer_id, lines in share_lines.items():
+        total = sum((ln["amount"] for ln in lines), Decimal("0")).quantize(CENT)
+        itemized.append({
+            "to_member": members[payer_id],
+            "amount": total,
+            "lines": lines,
+        })
+    itemized.sort(key=lambda r: r["amount"], reverse=True)
+
+    if trip.simplify_debts:
+        plan_src = simplify_debts(balances)
+    else:
+        plan_src = raw_pairwise_debts(trip)
+    simplified = [
+        {"to_member": members[to_id], "amount": amt}
+        for from_id, to_id, amt in plan_src
+        if from_id == member_id
+    ]
+
+    return {
+        "itemized": itemized,
+        "simplified": simplified,
+        "my_balance": balances.get(member_id, Decimal("0")),
+        "use_simplify": trip.simplify_debts,
+    }
+
+
 def member_balances(trip: Trip) -> dict[int, Decimal]:
     """Net balance per member: positive = is owed money, negative = owes."""
     balances: dict[int, Decimal] = {}

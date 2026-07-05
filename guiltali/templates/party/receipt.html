@@ -12,14 +12,17 @@
 .receipt h1{font-family:var(--px);font-size:13px;text-align:center;color:var(--brown-deep)}
 .receipt .meta{text-align:center;font-size:11px;color:var(--muted);margin-bottom:12px}
 .rrow{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:12.5px}
-.rrow.yours{background:#e8f0fe;border-radius:6px;padding:7px 8px;margin:3px -4px;border-bottom:none}
-.rrow.yours .t,.rrow.yours .a{color:#1a56db;font-weight:800}
-.rrow.yours .t .tags{color:#3b6fc9;font-weight:600}
+.rrow.you-paid{background:#e8f0fe;border-radius:6px;padding:7px 8px;margin:3px -4px;border-bottom:none}
+.rrow.you-paid .t,.rrow.you-paid .a{color:#1a56db;font-weight:800}
+.rrow.you-paid .t .tags{color:#3b6fc9;font-weight:600}
 .rrow .t{flex:1;min-width:0}
 .rrow .t .tags{font-size:10px;color:var(--muted)}
 .rrow .t .you-tag{font-size:10px;font-weight:800;color:#1a56db;text-transform:uppercase;letter-spacing:.3px}
 .rrow .a{white-space:nowrap;font-weight:700}
 .rtotal{display:flex;justify-content:space-between;padding-top:10px;font-family:var(--px);font-size:13px}
+.owe-line{font-size:12.5px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.owe-line:last-child{border-bottom:none}
+.owe-line .sub{font-size:11px;color:var(--muted);margin-top:3px}
 {% endblock %}
 {% block content %}
 
@@ -27,13 +30,13 @@
   <h1>{% if scope == 'group' %}BROCK TRIP — GROUP RECEIPT{% else %}{{ target.shown_name|upper }} — PERSONAL RECEIPT{% endif %}</h1>
   <div class="meta">{{ trip.start_date|date:"M j" }}–{{ trip.end_date|date:"j, Y" }} · {{ rows|length }} item{{ rows|length|pluralize }}</div>
   {% for r in rows %}
-  <div class="rrow{% if r.is_yours %} yours{% endif %}">
+  <div class="rrow{% if r.is_yours %} you-paid{% endif %}">
     <span class="t">
       {{ r.exp.title }}
       <div class="tags">
-        {% if scope == 'group' and r.exp.payer_id == me.id %}<span class="you-tag">You paid</span> · {% endif %}
+        {% if r.is_yours %}<span class="you-tag">You paid</span> · {% endif %}
         {{ r.exp.payer.shown_name }}{% if r.exp.payer.real_name_sub %} <span style="opacity:.7">({{ r.exp.payer.real_name_sub }})</span>{% endif %}{% if r.exp.incurred_on %} · {{ r.exp.incurred_on|date:"M j" }}{% endif %}
-        {% if scope == 'group' and r.my_share and r.exp.payer_id != me.id %} · your share ${{ r.my_share }}{% endif %}
+        {% if scope == 'group' and r.my_share and not r.is_yours %} · your share ${{ r.my_share }}{% endif %}
         {% for t in r.tag_labels %} · {{ t }}{% endfor %}
       </div>
     </span>
@@ -44,6 +47,58 @@
   {% endfor %}
   <div class="rtotal"><span>TOTAL</span><span>${{ total }}</span></div>
 </div>
+
+{% if owe_info and scope == 'member' %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/water.png' %}" alt="">Who you owe</h2>
+  {% if owe_info.use_simplify %}
+  <p class="muted" style="font-size:12.5px;margin-bottom:10px">
+    <strong>Simplified debts</strong> rolls everyone's balances into the fewest payments.
+    Your net balance is
+    <strong class="{% if owe_info.my_balance >= 0 %}money-pos{% else %}money-neg{% endif %}">
+      {% if owe_info.my_balance >= 0 %}+{% endif %}${{ owe_info.my_balance|floatformat:2 }}
+    </strong>.
+  </p>
+  {% if owe_info.simplified %}
+  <div class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Suggested payments</div>
+  {% for p in owe_info.simplified %}
+  <div class="owe-line">
+    Pay <strong>{{ p.to_member.shown_name }}</strong> <strong>${{ p.amount }}</strong>
+    <div class="sub">Fewest-transfer settlement — paying this helps square the group.</div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="muted" style="font-size:13px">You're all squared up — no payments needed.</p>
+  {% endif %}
+  {% if owe_info.itemized %}
+  <div class="divider"></div>
+  <div class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Why (your shares)</div>
+  {% for block in owe_info.itemized %}
+  <div class="owe-line">
+    <strong>${{ block.amount }}</strong> toward {{ block.to_member.shown_name }} from:
+    <div class="sub">
+      {% for ln in block.lines %}{{ ln.title }} (${{ ln.amount }}){% if not forloop.last %} · {% endif %}{% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% else %}
+  {% if owe_info.simplified %}
+  {% for p in owe_info.simplified %}
+  <div class="owe-line">
+    Pay <strong>{{ p.to_member.shown_name }}</strong> <strong>${{ p.amount }}</strong>
+    {% for block in owe_info.itemized %}{% if block.to_member.id == p.to_member.id %}
+    <div class="sub">From: {% for ln in block.lines %}{{ ln.title }} (${{ ln.amount }}){% if not forloop.last %} · {% endif %}{% endfor %}</div>
+    {% endif %}{% endfor %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="muted" style="font-size:13px">You're all squared up.</p>
+  {% endif %}
+  {% endif %}
+  <a class="btn ghost small" href="{% url 'settle' %}" style="margin-top:10px;width:100%" data-snd="rustle">Settle up →</a>
+</div>
+{% endif %}
 
 {% if receipt_members %}
 <div class="card">

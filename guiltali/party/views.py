@@ -36,7 +36,7 @@ from .models import (
     UserProfile,
     Vote,
 )
-from .splits import member_balances, preview_split, raw_pairwise_debts, simplify_debts, tag_totals
+from .splits import member_balances, member_owe_explanations, preview_split, raw_pairwise_debts, simplify_debts, tag_totals
 
 
 def _text_blocks(body: str):
@@ -431,6 +431,35 @@ def budget(request):
 
 
 @login_required
+def budget_detail(request, expense_id: int):
+    """Single expense: split breakdown, receipt proof, edit/delete."""
+    trip = _trip(request)
+    me = _me(request, trip)
+    exp = get_object_or_404(
+        Expense.objects.prefetch_related("shares__member"),
+        pk=expense_id, trip=trip,
+    )
+    members = list(trip.party.memberships.exclude(is_ai=True).select_related("user"))
+    my_share_obj = next((s for s in exp.shares.all() if s.member_id == me.id), None)
+    share_rows = sorted(
+        (
+            {"member": s.member, "amount": s.amount, "excluded": s.excluded}
+            for s in exp.shares.all()
+        ),
+        key=lambda r: (r["excluded"], -r["amount"]),
+    )
+    return render(request, "party/budget_detail.html", {
+        "exp": exp,
+        "share_rows": share_rows,
+        "my_share": my_share_obj.amount if my_share_obj and not my_share_obj.excluded else None,
+        "excluded": my_share_obj.excluded if my_share_obj else False,
+        "tag_labels": [TAG_MAP.get(t, t) for t in (exp.tags or [])],
+        "can_edit": _can_edit_expense(me, exp),
+        "split_label": dict(Expense.SPLIT_CHOICES).get(exp.split_method, exp.split_method),
+    })
+
+
+@login_required
 def budget_charts(request):
     """Where the money went — full breakdown by tag and by person."""
     trip = _trip(request)
@@ -801,7 +830,7 @@ def receipt(request, member_id: int | None = None):
             if share is None or share == 0:
                 continue
             amount = share
-            is_yours = True
+            is_yours = exp.payer_id == target.id
         else:
             amount = exp.amount
             share = next((s for s in exp.shares.all() if s.member_id == me.id and not s.excluded), None)
@@ -817,12 +846,15 @@ def receipt(request, member_id: int | None = None):
             "tag_labels": [TAG_MAP.get(t, t) for t in (exp.tags or [])],
         })
     members = trip.party.memberships.exclude(is_ai=True).all() if me.role == Membership.ROLE_ADMIN else None
+    viewer_id = target.id if scope == "member" else me.id
+    owe_info = member_owe_explanations(trip, viewer_id) if scope == "member" else None
     return render(request, "party/receipt.html", {
         "scope": scope,
         "target": target,
         "rows": rows,
         "total": total,
         "receipt_members": members,
+        "owe_info": owe_info,
     })
 
 

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Expense{% endblock %}
+{% block extra_css %}
+.proof img{max-width:100%;border-radius:10px;border:1px solid var(--line);margin-top:8px}
+{% endblock %}
+{% block content %}
+<a href="{% url 'budget' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Budget</a>
+
+<div class="card wood" style="margin-top:8px">
+  <h2><img src="{% static 'img/icons/acorn.png' %}" alt="">Expense</h2>
+  <div style="text-align:center;padding:6px 0 4px">
+    <div style="font-weight:800;font-size:17px">{{ exp.title }}</div>
+    <div class="balance-hero" style="font-family:var(--px);font-size:26px;color:var(--green-deep)">${{ exp.amount }}</div>
+    <div class="muted" style="font-size:12.5px">
+      Paid by {{ exp.payer.shown_name }}{% if exp.payer.real_name_sub %} ({{ exp.payer.real_name_sub }}){% endif %}
+      · {{ exp.incurred_on|date:"M j, Y"|default:exp.created_at|date:"M j, Y" }}
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:6px">
+      {% if exp.is_pre_trip %}<span class="pill bark">pre-trip</span>{% endif %}
+      {% for t in tag_labels %}<span class="pill amber">{{ t }}</span>{% endfor %}
+      <span class="pill">{{ split_label }}</span>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <p class="muted" style="font-size:12.5px;margin-bottom:8px"><em>{{ exp.split_note }}</em></p>
+  {% if my_share is not None %}
+  <p style="font-size:13.5px;margin-bottom:10px">Your share: <strong>${{ my_share }}</strong></p>
+  {% elif excluded %}
+  <p class="muted" style="font-size:13px;margin-bottom:10px">You're not on this one.</p>
+  {% endif %}
+  {% for r in share_rows %}
+  <div class="item-row" {% if r.excluded %}style="opacity:.55"{% endif %}>
+    <span class="avatar-px" style="width:28px;height:28px;background:{{ r.member.swatch }}22"><img src="{{ r.member.icon_url }}" style="width:18px;height:18px" alt=""></span>
+    <span>{{ r.member.shown_name }}{% if r.excluded %} <span class="muted">(excluded)</span>{% endif %}</span>
+    <span class="qty" style="font-size:13.5px;font-weight:700;color:var(--ink)">${{ r.amount }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+{% if exp.receipt %}
+<div class="card proof">
+  <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">Proof / receipt</h2>
+  <a href="{{ exp.receipt.url|safe }}" target="_blank" rel="noopener" data-snd="rustle">
+    <img src="{{ exp.receipt.url|safe }}" alt="Receipt for {{ exp.title }}" loading="lazy">
+  </a>
+  <a class="btn ghost small" href="{{ exp.receipt.url|safe }}" target="_blank" rel="noopener" style="margin-top:10px;width:100%" data-snd="rustle">Open full size</a>
+</div>
+{% endif %}
+
+{% if can_edit %}
+<div class="card">
+  <div style="display:flex;gap:8px">
+    <a class="btn ghost small" href="{% url 'budget_edit' exp.id %}" style="flex:1" data-snd="rustle">Edit</a>
+    <form method="post" action="{% url 'budget_delete' exp.id %}" onsubmit="return confirm('Delete “{{ exp.title }}”?')" style="flex:1;margin:0">
+      {% csrf_token %}
+      <button class="btn ghost small" type="submit" style="width:100%;color:var(--burgundy)" data-snd="snap">Delete</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -17,6 +17,7 @@ urlpatterns = [
     path("experience/edit/", views.trip_edit, name="trip_edit"),
 
     path("budget/", views.budget, name="budget"),
+    path("budget/<int:expense_id>/", views.budget_detail, name="budget_detail"),
     path("budget/add/", views.budget_add, name="budget_add"),
     path("budget/edit/<int:expense_id>/", views.budget_edit, name="budget_edit"),
     path("budget/delete/<int:expense_id>/", views.budget_delete, name="budget_delete"),

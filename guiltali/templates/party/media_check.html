@@ -97,7 +97,7 @@
     (S3 console → your bucket → Properties → AWS Region, e.g. <code>us-east-1</code> not “US East”).
     IAM user needs at least:
   </p>
-  <pre style="font-size:11px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;margin-top:8px">s3:ListBucket on arn:aws:s3:::YOUR-BUCKET
+  <pre style="font-size:11px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;margin-top:8px">s3:ListBucket, s3:GetBucketLocation on arn:aws:s3:::YOUR-BUCKET
 s3:GetObject, s3:PutObject, s3:DeleteObject on arn:aws:s3:::YOUR-BUCKET/*</pre>
 </div>
 {% endblock %}

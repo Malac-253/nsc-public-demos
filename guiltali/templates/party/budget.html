@@ -15,10 +15,11 @@
   color:var(--muted);padding:5px 6px;text-align:left;border-bottom:2px solid var(--line)}
 .exp-table th:last-child{text-align:right}
 .exp-row td{padding:0}
-.exp-summary{display:flex;align-items:center;gap:8px;padding:9px 6px;cursor:pointer;list-style:none;
-  border-bottom:1px solid var(--line);position:relative}
-.exp-summary::-webkit-details-marker{display:none}
-.exp-row:last-child .exp-summary{border-bottom:none}
+.exp-link{display:flex;align-items:center;gap:8px;padding:9px 6px;
+  border-bottom:1px solid var(--line);text-decoration:none;color:inherit;
+  transition:background .12s ease}
+.exp-link:active{background:var(--gray-soft)}
+.exp-row:last-child .exp-link{border-bottom:none}
 .exp-color-strip{width:4px;border-radius:3px;flex:none;align-self:stretch;min-height:32px}
 .exp-payer-av{width:28px;height:28px;border-radius:8px;flex:none;display:flex;
   align-items:center;justify-content:center}
@@ -27,9 +28,8 @@
 .exp-title{font-weight:700;font-size:13.5px;line-height:1.25}
 .exp-meta{font-size:11px;color:var(--muted);margin-top:1px}
 .exp-tags{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}
-.exp-amount{font-weight:800;font-size:14px;white-space:nowrap;text-align:right;flex:none}
-.exp-detail{padding:8px 6px 12px 46px;font-size:12.5px;border-bottom:1px solid var(--line);background:var(--gray-soft)}
-.exp-row:last-child .exp-detail{border-bottom:none}
+.exp-amount{font-weight:800;font-size:14px;white-space:nowrap;text-align:right;flex:none;margin-left:auto}
+.exp-chevron{flex:none;color:var(--muted);font-size:14px;opacity:.55}
 {% endblock %}
 {% block content %}
 
@@ -81,40 +81,24 @@
     {% for row in expense_rows %}
     <tr class="exp-row">
       <td colspan="4" style="padding:0">
-        <details>
-          <summary class="exp-summary">
-            <span class="exp-color-strip" style="background:{% if row.exp.row_color %}{{ row.exp.row_color }}{% else %}var(--line){% endif %}"></span>
-            <span class="exp-payer-av" style="background:{{ row.exp.payer.swatch }}18;border:1.5px solid {{ row.exp.payer.swatch }}44" title="Paid by {{ row.exp.payer.shown_name }}">
-              <img src="{{ row.exp.payer.icon_url }}" alt="{{ row.exp.payer.shown_name }}">
-            </span>
-            <span class="exp-title-col">
-              <div class="exp-title">{{ row.exp.title }}</div>
-              <div class="exp-meta">{{ row.exp.payer.shown_name }}{% if row.exp.payer.real_name_sub %} <span style="opacity:.75">({{ row.exp.payer.real_name_sub }})</span>{% endif %} · {{ row.exp.incurred_on|date:"M j"|default:row.exp.created_at|date:"M j" }}</div>
-              {% if row.exp.tags or row.exp.is_pre_trip %}
-              <div class="exp-tags">
-                {% if row.exp.is_pre_trip %}<span class="pill bark" style="font-size:10px;padding:2px 6px">pre-trip</span>{% endif %}
-                {% for t in row.tag_labels %}<span class="pill amber" style="font-size:10px;padding:2px 6px">{{ t }}</span>{% endfor %}
-              </div>
-              {% endif %}
-            </span>
-            <span class="exp-amount">${{ row.exp.amount }}</span>
-          </summary>
-          <div class="exp-detail">
-            <div class="muted" style="margin-bottom:4px"><em>{{ row.exp.split_note }}</em></div>
-            {% if row.my_share is not None %}<div>Your share: <strong>${{ row.my_share }}</strong></div>
-            {% elif row.excluded %}<div class="muted">You're not on this one.</div>{% endif %}
-            {% if row.exp.receipt %}<a href="{{ row.exp.receipt.url }}" target="_blank" style="margin-top:4px;display:inline-block">View receipt →</a>{% endif %}
-            {% if row.can_edit %}
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <a class="btn ghost small" href="{% url 'budget_edit' row.exp.id %}" data-snd="rustle">Edit expense</a>
-              <form method="post" action="{% url 'budget_delete' row.exp.id %}" onsubmit="return confirm('Delete “{{ row.exp.title }}”? This can\'t be undone.')" style="margin:0">
-                {% csrf_token %}
-                <button class="btn ghost small" type="submit" style="color:var(--burgundy)" data-snd="snap">Delete</button>
-              </form>
+        <a class="exp-link" href="{% url 'budget_detail' row.exp.id %}" data-snd="rustle">
+          <span class="exp-color-strip" style="background:{% if row.exp.row_color %}{{ row.exp.row_color }}{% else %}var(--line){% endif %}"></span>
+          <span class="exp-payer-av" style="background:{{ row.exp.payer.swatch }}18;border:1.5px solid {{ row.exp.payer.swatch }}44" title="Paid by {{ row.exp.payer.shown_name }}">
+            <img src="{{ row.exp.payer.icon_url }}" alt="{{ row.exp.payer.shown_name }}">
+          </span>
+          <span class="exp-title-col">
+            <div class="exp-title">{{ row.exp.title }}</div>
+            <div class="exp-meta">{{ row.exp.payer.shown_name }}{% if row.exp.payer.real_name_sub %} <span style="opacity:.75">({{ row.exp.payer.real_name_sub }})</span>{% endif %} · {{ row.exp.incurred_on|date:"M j"|default:row.exp.created_at|date:"M j" }}</div>
+            {% if row.exp.tags or row.exp.is_pre_trip %}
+            <div class="exp-tags">
+              {% if row.exp.is_pre_trip %}<span class="pill bark" style="font-size:10px;padding:2px 6px">pre-trip</span>{% endif %}
+              {% for t in row.tag_labels %}<span class="pill amber" style="font-size:10px;padding:2px 6px">{{ t }}</span>{% endfor %}
             </div>
             {% endif %}
-          </div>
-        </details>
+          </span>
+          <span class="exp-amount">${{ row.exp.amount }}</span>
+          <span class="exp-chevron">›</span>
+        </a>
       </td>
     </tr>
     {% endfor %}

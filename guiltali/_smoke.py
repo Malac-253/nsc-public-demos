@@ -12,7 +12,7 @@ from django.test import Client
 
 dj_settings.ALLOWED_HOSTS.append("testserver")
 
-from party.models import InfoPage, Membership, Poll, TaskList, Trip, UserProfile
+from party.models import Expense, InfoPage, Membership, Poll, TaskList, Trip, UserProfile
 
 trip = Trip.objects.get(is_active=True)
 PASS = 0
@@ -115,6 +115,12 @@ r = c.post("/budget/confirm/", {"action": "confirm"})
 check("expense confirmed", r.status_code == 302)
 r = c.get("/budget/")
 check("expense listed", b"Smoke pretzels" in r.content)
+exp = Expense.objects.filter(trip=trip, title="Smoke pretzels").first()
+if exp:
+    r = c.get(f"/budget/{exp.id}/")
+    check("expense detail page", r.status_code == 200 and b"Smoke pretzels" in r.content)
+    r = c.get(f"/budget/receipt/{Membership.objects.get(user__username='malachi', party=trip.party).id}/")
+    check("my receipt with owe section", r.status_code == 200 and b"Who you owe" in r.content)
 
 # simplify debts toggle (admin)
 if trip.simplify_debts:
@@ -210,7 +216,6 @@ check("nickname persisted", me_m.nickname == "Smokey")
 check("shown_name uses nickname", me_m.shown_name == "Smokey")
 
 # expense edit: payer can edit own; admin can edit anyone's
-from party.models import Expense
 own_exp = Expense.objects.filter(trip=trip, payer=me_m).first()
 check("sample expense for edit test", own_exp is not None)
 if own_exp:

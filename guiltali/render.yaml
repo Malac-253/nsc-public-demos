@@ -40,9 +40,11 @@ services:
 
     #   IAM user needs s3:PutObject, s3:GetObject, s3:DeleteObject, s3:ListBucket.
 
-    #   Add env vars in Render dashboard:
+    #   Add env vars in Render dashboard (region MUST match bucket — S3 → Properties):
 
-    #     AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME,
+    #     AWS_STORAGE_BUCKET_NAME=guiltali-media-brock
+
+    #     AWS_S3_REGION_NAME=us-east-2   ← exact code; wrong region → HTTP 400 on photos
 
     #     AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 
