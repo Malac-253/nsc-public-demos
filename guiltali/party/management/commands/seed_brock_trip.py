@@ -37,6 +37,7 @@ from party.models import (
     TaskList,
     Trip,
     TripPhoto,
+    UserProfile,
     Vote,
 )
 from party.splits import preview_split
@@ -386,6 +387,14 @@ class Command(BaseCommand):
                 if m.plus_one_of_id is None:
                     m.plus_one_of = members[plus_of]
                     m.save(update_fields=["plus_one_of"])
+
+        # Mark icon prompt done for all seeded members so they go straight
+        # to the home screen instead of being stuck on settings after first login.
+        for m in members.values():
+            UserProfile.objects.update_or_create(
+                user=m.user,
+                defaults={"icon_prompt_done": True, "sounds_on": True},
+            )
 
         eden = members["eden"]
         if not eden.dietary_notes:

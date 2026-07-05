@@ -196,7 +196,7 @@ nav.tabbar a.active img{transform:translateY(-2px) scale(1.15);filter:none;
 {% if bar_announcements %}
 <div class="announce">
   {% for a in bar_announcements %}
-    {% if not a.audience or a.audience.id == me.id or me.is_staff_role %}
+    {% if not a.audience or a.audience.id == me.id %}
     <div class="note" data-announce="{{ a.id }}">
       {% if a.audience %}<strong>{{ a.audience.shown_name }}</strong> — {% endif %}{{ a.text }}
       <button class="x" type="button" data-snd="snap" onclick="dismissNote(this)">×</button>
