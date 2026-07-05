@@ -109,18 +109,19 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 52_428_800
 # Optional: AWS_S3_CUSTOM_DOMAIN (CloudFront or bucket website URL)
 if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
     INSTALLED_APPS.append("storages")
-    AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"]
-    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
-    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
-    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"].strip()
+    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1").strip()
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "").strip()
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "").strip()
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
     # Private bucket + time-limited signed URLs — only pages your app renders (after login)
     # get working links; raw S3 object URLs return 403. Download/img/video still work.
     AWS_QUERYSTRING_AUTH = True
     AWS_QUERYSTRING_EXPIRE = int(os.environ.get("AWS_QUERYSTRING_EXPIRE", "86400"))  # 24h
     AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
-    custom_domain = os.environ.get("AWS_S3_CUSTOM_DOMAIN")
+    custom_domain = (os.environ.get("AWS_S3_CUSTOM_DOMAIN") or "").strip()
     if custom_domain:
         AWS_S3_CUSTOM_DOMAIN = custom_domain
         MEDIA_URL = f"https://{custom_domain}/"

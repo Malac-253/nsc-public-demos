@@ -8,7 +8,8 @@
 .chips a.on{background:var(--green);border-color:var(--green-deep);color:#fff}
 .post{border:2px solid var(--line);border-radius:15px;box-shadow:var(--shadow);
   margin-bottom:14px;overflow:hidden;background:var(--card);
-  transition:border-color .2s ease,box-shadow .2s ease}
+  transition:border-color .2s ease,box-shadow .2s ease;
+  scroll-margin-top:calc(var(--nav-h, 70px) + 14px)}
 .post:hover,.post:focus-within{border-color:var(--green);box-shadow:0 0 0 3px rgba(47,125,79,.14),var(--shadow)}
 .post .head{display:flex;align-items:center;gap:9px;padding:11px 13px 0}
 .post .head .nm{font-weight:800;font-size:13.5px}
@@ -91,7 +92,7 @@
 </div>
 
 {% for p in posts %}
-<article class="post{% if p.highlight_author %} blink-post{% endif %}" {% if p.bg_color %}style="background:{{ p.bg_color }}"{% endif %}>
+<article id="post-{{ p.id }}" class="post{% if p.highlight_author %} blink-post{% endif %}" {% if p.bg_color %}style="background:{{ p.bg_color }}"{% endif %}>
   <div class="head">
     <a class="avatar-px" style="background:{{ p.author.swatch }}18;border-color:{{ p.author.swatch }}44" href="{% url 'member_link' p.author.id %}">
       <img src="{{ p.author.icon_url }}" alt="">
@@ -134,7 +135,7 @@
         {% if p.poll_total_members %} · {{ p.poll_voted_count }}/{{ p.poll_total_members }} weighed in{% endif %}
       </div>
       <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap">
-        <a class="btn small brown" href="{% url 'poll_detail' p.poll.id %}" data-snd="rustle">
+        <a class="btn small brown" href="{% url 'poll_detail' p.poll.id %}" data-feed-return="#post-{{ p.id }}" data-snd="rustle">
           {% if p.poll.stage == 'vote' and not p.poll_i_voted %}Vote now{% else %}View poll{% endif %}
         </a>
         {% if me.role == 'admin' or p.poll.author_id == me.id %}
@@ -142,7 +143,7 @@
           {% csrf_token %}
           <input type="hidden" name="action" value="set_poll_stage">
           <input type="hidden" name="post_id" value="{{ p.id }}">
-          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ p.id }}">
           {% if p.poll.stage == 'vote' %}
             <input type="hidden" name="stage" value="closed">
             <button class="btn ghost small" type="submit" data-snd="snap">Close poll</button>
@@ -162,17 +163,19 @@
     {% if p.link_url %}<a class="linkbtn" href="{{ p.link_url }}" target="_blank" rel="noopener" data-snd="rustle">{{ p.link_label }}</a>{% endif %}
     {% if p.internal_path %}<a class="linkbtn" href="{{ p.internal_path }}" data-snd="rustle">{{ p.link_label|default:"Open" }}</a>{% endif %}
 
-    <div class="react-wrap">
-      {% for r in p.reaction_summary %}<span class="pill" style="font-size:11px">{{ r.emoji }} {{ r.count }}</span>{% endfor %}
+    <div class="react-wrap" data-post-id="{{ p.id }}">
+      <span class="react-summary">
+        {% for r in p.reaction_summary %}<span class="pill" style="font-size:11px">{{ r.emoji }} {{ r.count }}</span>{% endfor %}
+      </span>
       <button type="button" class="react-toggle" data-react-toggle data-snd="snap">+ react</button>
       <div class="react-picker" data-react-picker>
         {% for emoji, label in reaction_choices %}
-        <form method="post" action="{% url 'react' %}" style="display:contents">
+        <form method="post" action="{% url 'react' %}" class="react-form" style="display:contents">
           {% csrf_token %}
           <input type="hidden" name="post_id" value="{{ p.id }}">
           <input type="hidden" name="emoji" value="{{ emoji }}">
-          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-          <button type="submit" class="{% if emoji in p.my_reaction_set %}mine{% endif %}" title="{{ label }}" data-snd="snap">
+          <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ p.id }}">
+          <button type="submit" class="react-btn{% if emoji in p.my_reaction_set %} mine{% endif %}" data-emoji="{{ emoji }}" title="{{ label }}" data-snd="snap">
             {{ emoji }}
           </button>
         </form>
@@ -204,20 +207,20 @@
     <button type="button" class="more-btn" data-more-toggle data-snd="snap" title="More">⋯</button>
     <div class="more-menu" data-more-menu>
       {% if p.can_archive %}
-      <form method="post">
+      <form method="post" data-feed-scroll-save>
         {% csrf_token %}
         <input type="hidden" name="action" value="archive_post">
         <input type="hidden" name="post_id" value="{{ p.id }}">
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ p.id }}">
         <button type="submit" data-snd="snap">Archive</button>
       </form>
       {% endif %}
       {% if p.can_delete %}
-      <form method="post" onsubmit="return confirm('Delete this post?')">
+      <form method="post" onsubmit="return confirm('Delete this post?')" data-feed-scroll-save>
         {% csrf_token %}
         <input type="hidden" name="action" value="delete_post">
         <input type="hidden" name="post_id" value="{{ p.id }}">
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ p.id }}">
         <button type="submit" class="danger" data-snd="snap">Delete</button>
       </form>
       {% endif %}
@@ -236,7 +239,7 @@
       {% csrf_token %}
       <input type="hidden" name="action" value="comment">
       <input type="hidden" name="post_id" value="{{ p.id }}">
-      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ p.id }}">
       <input type="text" name="text" placeholder="Add a comment…" maxlength="500" required>
       <button class="btn small brown" type="submit">Post</button>
     </form>
@@ -312,5 +315,72 @@ document.querySelectorAll("[data-react-toggle]").forEach(btn => {
   });
 });
 document.addEventListener("click", () => closeAllMenus());
+
+/* Keep scroll position after comments, reactions, archive/delete, poll navigation */
+(function feedScroll() {
+  const KEY = "guiltaliFeedScrollY";
+
+  function scrollToTarget() {
+    const hash = location.hash;
+    if (hash && hash.startsWith("#post-")) {
+      const el = document.querySelector(hash);
+      if (el) {
+        el.scrollIntoView({ block: "start", behavior: "auto" });
+        return true;
+      }
+    }
+    const saved = sessionStorage.getItem(KEY);
+    if (saved !== null) {
+      sessionStorage.removeItem(KEY);
+      window.scrollTo(0, parseInt(saved, 10) || 0);
+      return true;
+    }
+    return false;
+  }
+
+  if (!scrollToTarget()) {
+    window.addEventListener("load", () => scrollToTarget(), { once: true });
+  }
+
+  document.querySelectorAll("[data-feed-scroll-save]").forEach(form => {
+    form.addEventListener("submit", () => {
+      sessionStorage.setItem(KEY, String(window.scrollY));
+    });
+  });
+
+  document.querySelectorAll("[data-feed-return]").forEach(link => {
+    link.addEventListener("click", () => {
+      const target = link.dataset.feedReturn;
+      if (target) sessionStorage.setItem(KEY + "Hash", target);
+    });
+  });
+})();
+
+/* Reactions via AJAX — no full-page reload, no jump to top */
+document.querySelectorAll(".react-form").forEach(form => {
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector(".react-btn");
+    const wrap = form.closest(".react-wrap");
+    const summaryEl = wrap?.querySelector(".react-summary");
+    if (!btn || !summaryEl) return;
+    try {
+      const resp = await fetch(form.action, {
+        method: "POST",
+        body: new FormData(form),
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      summaryEl.innerHTML = (data.summary || []).map(r =>
+        `<span class="pill" style="font-size:11px">${r.emoji} ${r.count}</span>`
+      ).join("");
+      wrap.querySelectorAll(".react-btn").forEach(b => {
+        b.classList.toggle("mine", b.dataset.emoji === data.emoji && data.mine);
+      });
+      closeAllMenus();
+    } catch (_) { /* fall back: submit normally on next click if fetch failed */ }
+  });
+});
 </script>
 {% endblock %}

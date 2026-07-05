@@ -17,6 +17,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand
 
 from party.models import (
@@ -483,8 +484,10 @@ class Command(BaseCommand):
             ])
 
         static_img = Path(settings.BASE_DIR) / "static" / "img"
+        self.stdout.write(f"Media storage: {default_storage.__class__.__name__}")
         # Re-sync demo feed photos every deploy — Postgres survives redeploys but
-        # media files on Render's ephemeral disk do not.
+        # media files on Render's ephemeral disk do not. Replace any stale file so
+        # S3 keys stay in sync with the database.
         for author_username, caption, filename in BOARD_PHOTOS:
             author = members[author_username]
             post = Post.objects.filter(
@@ -496,7 +499,10 @@ class Command(BaseCommand):
                 )
             src = static_img / filename
             if src.exists():
+                if post.image:
+                    post.image.delete(save=False)
                 post.image.save(filename, ContentFile(src.read_bytes()), save=True)
+                self.stdout.write(f"  photo → {post.image.name}")
 
         for section, items in GROCERY_SECTIONS.items():
             tl, created = TaskList.objects.get_or_create(

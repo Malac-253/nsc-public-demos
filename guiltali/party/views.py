@@ -70,6 +70,19 @@ def _profile(request) -> UserProfile:
     return profile
 
 
+def _feed_return_path(request, post_id: int | None = None) -> str:
+    """Build a feed URL that restores scroll to a specific post (via #post-id)."""
+    nxt = request.POST.get("next") or request.GET.get("next") or reverse("feed")
+    base = nxt.split("#")[0]
+    if post_id:
+        return f"{base}#post-{post_id}"
+    return base
+
+
+def _redirect_feed(request, post_id: int | None = None):
+    return redirect(_feed_return_path(request, post_id))
+
+
 def _notify_everyone(trip: Trip, text: str, *, actor: Membership | None = None, link_path: str = ""):
     members = trip.party.memberships.exclude(is_ai=True)
     if actor:
@@ -1041,7 +1054,7 @@ def feed(request):
                         trip, post.author, f"{me.shown_name} commented on your post.",
                         actor=me, link_path=f"{reverse('feed')}?member={post.author_id}",
                     )
-            return redirect(request.POST.get("next") or "feed")
+            return _redirect_feed(request, int(request.POST["post_id"]))
         if action == "announce" and me.is_staff_role:
             audience_id = request.POST.get("audience") or None
             Announcement.objects.create(
@@ -1067,7 +1080,7 @@ def feed(request):
             elif action == "delete_post" and (is_own or me.role == Membership.ROLE_ADMIN):
                 post.delete()
                 messages.success(request, "Post deleted.")
-            return redirect(request.POST.get("next") or "feed")
+            return _redirect_feed(request)
         if action == "set_poll_stage":
             post = get_object_or_404(Post, pk=request.POST["post_id"], trip=trip)
             if post.poll and (me.role == Membership.ROLE_ADMIN or post.poll.author_id == me.id):
@@ -1075,7 +1088,7 @@ def feed(request):
                 if new_stage in (Poll.STAGE_SUGGEST, Poll.STAGE_VOTE, Poll.STAGE_CLOSED):
                     post.poll.stage = new_stage
                     post.poll.save(update_fields=["stage"])
-            return redirect(request.POST.get("next") or "feed")
+            return _redirect_feed(request, post.id)
 
     posts = trip.posts.filter(archived=False).select_related("author", "poll").prefetch_related(
         "comments__author", "extra_images", "videos", "poll__options__votes", "reactions",
@@ -1208,7 +1221,7 @@ def feed_new(request):
             post.kind = Post.KIND_PHOTO
             post.save(update_fields=["kind"])
         messages.success(request, "Posted to the feed.")
-        return redirect("feed")
+        return redirect(f"{reverse('feed')}#post-{post.id}")
 
     return render(request, "party/feed_new.html", {
         "kind_choices": [k for k in Post.KIND_CHOICES if k[0] != Post.KIND_POLL],
@@ -1242,8 +1255,12 @@ def react(request):
                 actor=me, link_path=f"{reverse('feed')}?member={post.author_id}",
             )
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        return JsonResponse({"mine": mine, "summary": post.reaction_summary()})
-    return redirect(request.POST.get("next") or "feed")
+        return JsonResponse({
+            "mine": mine,
+            "emoji": emoji,
+            "summary": post.reaction_summary(),
+        })
+    return _redirect_feed(request, post.id)
 
 
 @login_required
@@ -1360,8 +1377,11 @@ def poll_detail(request, poll_id: int):
         members_voted = len(voter_ids)
         not_voted = [m for m in all_members if m.id not in voter_ids][:6]
 
+    feed_post = Post.objects.filter(trip=trip, poll=poll).first()
+
     return render(request, "party/poll_detail.html", {
         "poll": poll,
+        "feed_post": feed_post,
         "options": options,
         "total": total,
         "can_advance": me.id == poll.author_id or me.is_staff_role,
