@@ -99,6 +99,14 @@
   {% endif %}
 </div>
 
+{% if is_admin %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">Admin tools</h2>
+  <p class="muted" style="font-size:13px;margin-bottom:10px">Photo uploads not working? Run the media check — no Render Shell needed.</p>
+  <a class="btn ghost small" href="{% url 'media_check' %}" data-snd="rustle">Check media / S3</a>
+</div>
+{% endif %}
+
 <div class="card">
   <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">About</h2>
   <p style="font-size:13.5px;margin-bottom:8px">

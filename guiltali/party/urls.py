@@ -45,6 +45,7 @@ urlpatterns = [
 
     path("party/", views.party, name="party"),
     path("settings/", views.settings_page, name="settings"),
+    path("settings/media/", views.media_check, name="media_check"),
     path("m/<int:member_id>/", views.member_link, name="member_link"),
     path("notifications/", views.notifications_list, name="notifications"),
     path("notifications/<int:notif_id>/open/", views.notif_open, name="notif_open"),

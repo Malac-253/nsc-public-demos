@@ -1485,4 +1485,16 @@ def settings_page(request):
         "color_choices": COLOR_CHOICES,
         "taken_icons": taken,
         "needs_icon": not profile.icon_prompt_done or not me.icon,
+        "is_admin": me.role == Membership.ROLE_ADMIN,
     })
+
+
+@login_required
+def media_check(request):
+    """Admin-only S3/media diagnostics (Render free tier has no Shell)."""
+    trip = _trip(request)
+    me = _me(request, trip)
+    if me.role != Membership.ROLE_ADMIN:
+        raise Http404
+    from party.media_diagnostics import media_diagnostics
+    return render(request, "party/media_check.html", {"info": media_diagnostics()})
