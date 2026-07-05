@@ -45,6 +45,13 @@
 .cmt-form{display:flex;gap:7px;margin-top:4px}
 .cmt-form input{flex:1;padding:8px 11px;font-size:13px}
 .pollbox{border:2px dashed var(--amber);border-radius:11px;padding:10px 12px;margin-top:8px;background:var(--amber-soft)}
+.poll-bar-row{display:flex;align-items:center;gap:7px;margin-top:5px;font-size:12px}
+.poll-bar-row .opt-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.poll-bar-track{width:80px;flex:none;height:8px;background:rgba(0,0,0,.1);border-radius:4px;overflow:hidden}
+.poll-bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.poll-bar-row .opt-pct{width:28px;flex:none;text-align:right;color:var(--muted);font-weight:700}
+.post-actions{display:flex;gap:6px;padding:6px 13px 8px;border-top:1px solid var(--line)}
+.post-actions form{margin:0}
 {% endblock %}
 {% block content %}
 
@@ -84,16 +91,51 @@
 
     {% if p.poll %}
     <div class="pollbox">
-      <div style="font-size:12px;font-weight:700;color:#8a6a00">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#8a6a00;margin-bottom:3px">Poll</div>
+      <div style="font-weight:700;font-size:14px;color:#5a3c00">{{ p.poll.question }}</div>
+      <div style="font-size:12px;font-weight:700;color:#8a6a00;margin-top:3px">
         {% if p.poll.stage == 'suggest' %}Collecting suggestions — add yours!
         {% elif p.poll.stage == 'vote' %}Voting open — {{ p.poll.total_votes }} vote{{ p.poll.total_votes|pluralize }}
-        {% else %}Poll closed{% endif %}
+        {% else %}Poll closed — {{ p.poll.total_votes }} vote{{ p.poll.total_votes|pluralize }}{% endif %}
       </div>
-      <div class="poll-status">
+      {% if p.poll_preview_options %}
+      <div style="margin-top:7px">
+        {% for opt in p.poll_preview_options %}
+        <div class="poll-bar-row">
+          <span class="opt-label">{{ opt.text }}</span>
+          <span class="poll-bar-track"><span class="poll-bar-fill" style="width:{{ opt.pct }}%;background:{{ opt.color }}"></span></span>
+          <span class="opt-pct">{{ opt.pct }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div class="poll-status" style="margin-top:5px">
         {% if p.poll_i_voted %}<span class="ok">✓ You've voted</span>{% elif p.poll.stage == 'vote' %}<span class="pending">You haven't voted yet</span>{% endif %}
-        {% if p.poll_total_members %} · {{ p.poll_voted_count }}/{{ p.poll_total_members }} of the party has weighed in{% endif %}
+        {% if p.poll_total_members %} · {{ p.poll_voted_count }}/{{ p.poll_total_members }} weighed in{% endif %}
       </div>
-      <a class="btn small brown" href="{% url 'poll_detail' p.poll.id %}" style="margin-top:7px" data-snd="rustle">Open poll to vote</a>
+      <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap">
+        <a class="btn small brown" href="{% url 'poll_detail' p.poll.id %}" data-snd="rustle">
+          {% if p.poll.stage == 'vote' and not p.poll_i_voted %}Vote now{% else %}View poll{% endif %}
+        </a>
+        {% if me.role == 'admin' or p.poll.author_id == me.id %}
+        <form method="post" style="margin:0">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="set_poll_stage">
+          <input type="hidden" name="post_id" value="{{ p.id }}">
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          {% if p.poll.stage == 'vote' %}
+            <input type="hidden" name="stage" value="closed">
+            <button class="btn ghost small" type="submit" data-snd="snap">Close poll</button>
+          {% elif p.poll.stage == 'closed' %}
+            <input type="hidden" name="stage" value="vote">
+            <button class="btn ghost small" type="submit" data-snd="snap">Reopen</button>
+          {% else %}
+            <input type="hidden" name="stage" value="vote">
+            <button class="btn ghost small" type="submit" data-snd="snap">Open voting</button>
+          {% endif %}
+        </form>
+        {% endif %}
+      </div>
     </div>
     {% endif %}
 
@@ -129,6 +171,29 @@
   {% if imgs|length > 1 %}<div class="slider-dots" data-dots>{% for img in imgs %}<i class="{% if forloop.first %}on{% endif %}"></i>{% endfor %}</div>{% endif %}
   {% endif %}
   {% endwith %}
+
+  {% if p.can_archive or p.can_delete %}
+  <div class="post-actions">
+    {% if p.can_archive %}
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="archive_post">
+      <input type="hidden" name="post_id" value="{{ p.id }}">
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="btn ghost small" type="submit" style="font-size:11px" data-snd="snap">Archive</button>
+    </form>
+    {% endif %}
+    {% if p.can_delete %}
+    <form method="post" onsubmit="return confirm('Delete this post?')">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_post">
+      <input type="hidden" name="post_id" value="{{ p.id }}">
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="btn ghost small" type="submit" style="font-size:11px;color:var(--burgundy)" data-snd="snap">Delete</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
 
   <div class="comments">
     {% for c in p.comments.all %}

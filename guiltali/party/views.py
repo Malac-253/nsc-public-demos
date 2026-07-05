@@ -386,6 +386,9 @@ def budget_add(request):
         payer_id = int(request.POST.get("payer", me.id))
         participants = _parse_participants(request, members)
         detail = _parse_detail(request, participants)
+        row_color = request.POST.get("row_color", "").strip()
+        if row_color and not row_color.startswith("#"):
+            row_color = ""
         request.session["pending_expense"] = {
             "title": title,
             "amount": str(amount),
@@ -395,14 +398,23 @@ def budget_add(request):
             "is_pre_trip": bool(request.POST.get("is_pre_trip")),
             "detail": {str(k): str(v) for k, v in detail.items()},
             "participants": [m.id for m in participants],
+            "row_color": row_color,
         }
         return redirect("budget_confirm")
 
+    row_color_choices = [
+        ("#2f7d4f", "Forest green"), ("#5d7f35", "Fern"),
+        ("#c47a3d", "Amber"), ("#c9a441", "Gold"),
+        ("#3f7fbf", "River blue"), ("#4d8f8b", "Moss teal"),
+        ("#b0533b", "Clay red"), ("#7a5fa0", "Dusk purple"),
+        ("#6b4d2e", "Bark brown"),
+    ]
     return render(request, "party/budget_add.html", {
         "members": members,
         "member_fields": member_fields,
         "split_choices": Expense.SPLIT_CHOICES,
         "tag_choices": Expense.TAG_CHOICES,
+        "row_color_choices": row_color_choices,
         "draft": draft,
     })
 
@@ -444,6 +456,7 @@ def budget_confirm(request):
             exp.incurred_on = timezone.localdate()
             exp.tags = pending["tags"]
             exp.split_note = note
+            exp.row_color = pending.get("row_color", "")
             exp.save()
             share_objs = [
                 ExpenseShare(expense=exp, member_id=mid, amount=amt)
@@ -766,32 +779,6 @@ def tools(request):
 def feed(request):
     trip = _trip(request)
     me = _me(request, trip)
-    posts = trip.posts.select_related("author", "poll").prefetch_related(
-        "comments__author", "extra_images", "poll__options__votes", "reactions",
-    )
-    member_filter = request.GET.get("member")
-    filtered_member = None
-    if member_filter:
-        filtered_member = get_object_or_404(Membership, pk=member_filter, party=trip.party)
-        posts = posts.filter(author=filtered_member)
-    kind = request.GET.get("kind", "")
-    if kind in dict(Post.KIND_CHOICES):
-        posts = posts.filter(kind=kind)
-
-    member_count = trip.party.memberships.exclude(is_ai=True).count()
-    posts = list(posts)
-    for post in posts:
-        all_reactions = list(post.reactions.all())
-        post.my_reaction_set = {r.emoji for r in all_reactions if r.member_id == me.id}
-        counts: dict[str, int] = {}
-        for r in all_reactions:
-            counts[r.emoji] = counts.get(r.emoji, 0) + 1
-        post.reaction_counts = counts
-        if post.poll_id:
-            voter_ids = post.poll.voter_ids()
-            post.poll_total_members = member_count
-            post.poll_voted_count = len(voter_ids)
-            post.poll_i_voted = me.id in voter_ids
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -810,6 +797,69 @@ def feed(request):
             )
             messages.success(request, "Announcement posted.")
             return redirect("feed")
+        if action in ("archive_post", "delete_post"):
+            post = get_object_or_404(Post, pk=request.POST["post_id"], trip=trip)
+            is_own = post.author_id == me.id
+            if action == "archive_post" and (is_own or me.is_staff_role):
+                post.archived = True
+                post.save(update_fields=["archived"])
+                messages.success(request, "Post archived.")
+            elif action == "delete_post" and (is_own or me.role == Membership.ROLE_ADMIN):
+                post.delete()
+                messages.success(request, "Post deleted.")
+            return redirect(request.POST.get("next") or "feed")
+        if action == "set_poll_stage":
+            post = get_object_or_404(Post, pk=request.POST["post_id"], trip=trip)
+            if post.poll and (me.role == Membership.ROLE_ADMIN or post.poll.author_id == me.id):
+                new_stage = request.POST.get("stage", "")
+                if new_stage in (Poll.STAGE_SUGGEST, Poll.STAGE_VOTE, Poll.STAGE_CLOSED):
+                    post.poll.stage = new_stage
+                    post.poll.save(update_fields=["stage"])
+            return redirect(request.POST.get("next") or "feed")
+
+    posts = trip.posts.filter(archived=False).select_related("author", "poll").prefetch_related(
+        "comments__author", "extra_images", "poll__options__votes", "reactions",
+    )
+    member_filter = request.GET.get("member")
+    filtered_member = None
+    if member_filter:
+        filtered_member = get_object_or_404(Membership, pk=member_filter, party=trip.party)
+        posts = posts.filter(author=filtered_member)
+    kind = request.GET.get("kind", "")
+    if kind in dict(Post.KIND_CHOICES):
+        posts = posts.filter(kind=kind)
+
+    member_count = trip.party.memberships.exclude(is_ai=True).count()
+    palette = ["#2f7d4f", "#c47a3d", "#3f7fbf", "#7a5fa0", "#b0533b", "#4d8f8b", "#c9a441", "#5d7f35"]
+    posts = list(posts)
+    for post in posts:
+        all_reactions = list(post.reactions.all())
+        post.my_reaction_set = {r.emoji for r in all_reactions if r.member_id == me.id}
+        counts: dict[str, int] = {}
+        for r in all_reactions:
+            counts[r.emoji] = counts.get(r.emoji, 0) + 1
+        post.reaction_counts = counts
+        if post.poll_id:
+            voter_ids = post.poll.voter_ids()
+            post.poll_total_members = member_count
+            post.poll_voted_count = len(voter_ids)
+            post.poll_i_voted = me.id in voter_ids
+            # Inline options preview for voting stage
+            if post.poll.stage in (Poll.STAGE_VOTE, Poll.STAGE_CLOSED):
+                total = post.poll.total_votes()
+                post.poll_preview_options = [
+                    {
+                        "text": opt.text,
+                        "count": opt.votes.count(),
+                        "pct": int(opt.votes.count() / total * 100) if total else 0,
+                        "color": palette[i % len(palette)],
+                    }
+                    for i, opt in enumerate(post.poll.options.all()[:5])
+                ]
+            else:
+                post.poll_preview_options = []
+        post.can_archive = post.author_id == me.id or me.is_staff_role
+        post.can_delete = post.author_id == me.id or me.role == Membership.ROLE_ADMIN
 
     members = trip.party.memberships.exclude(is_ai=True).all()
     return render(request, "party/feed.html", {
@@ -1003,6 +1053,22 @@ def poll_detail(request, poll_id: int):
 def party(request):
     trip = _trip(request)
     me = _me(request, trip)
+
+    if request.method == "POST" and me.role == Membership.ROLE_ADMIN:
+        action = request.POST.get("action")
+        if action == "set_role":
+            target = get_object_or_404(Membership, pk=request.POST["member_id"], party=trip.party)
+            new_role = request.POST.get("role", "")
+            # Admin can only promote/demote to moderator or member — can't touch themselves
+            # or other admins, and can't grant admin status via this UI.
+            if (target.pk != me.pk
+                    and target.role != Membership.ROLE_ADMIN
+                    and new_role in (Membership.ROLE_MODERATOR, Membership.ROLE_MEMBER)):
+                target.role = new_role
+                target.save(update_fields=["role"])
+                messages.success(request, f"{target.shown_name} is now {target.get_role_display()}.")
+        return redirect("party")
+
     att = {a.member_id: a for a in trip.attendances.all()}
     day_count = max((trip.end_date - trip.start_date).days + 1, 1)
     rows = []
@@ -1020,7 +1086,7 @@ def party(request):
             "width_pct": int((end_idx - start_idx + 1) / day_count * 100),
             "travel_note": m.travel_note if m.can_see_travel_note(me) else "",
         })
-    return render(request, "party/party.html", {"rows": rows})
+    return render(request, "party/party.html", {"rows": rows, "is_admin": me.role == Membership.ROLE_ADMIN})
 
 
 @login_required

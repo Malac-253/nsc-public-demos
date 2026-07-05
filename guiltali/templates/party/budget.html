@@ -9,14 +9,27 @@
 @keyframes growb{from{width:0}}
 .tagbar .lbl{width:92px;flex:none;font-weight:700}
 .tagbar .amt{width:70px;flex:none;text-align:right;color:var(--muted);font-size:11.5px}
-.tag-check{display:inline-flex;align-items:center;gap:5px;border:2px solid var(--line);border-radius:9px;
-  padding:5px 10px;font-size:12.5px;cursor:pointer;background:#fff}
-.tag-check input{width:auto;accent-color:var(--green)}
-.detail-grid{display:none;margin-top:8px}
-.detail-grid.show{display:block}
-.detail-grid .drow{display:flex;align-items:center;gap:8px;padding:4px 0}
-.detail-grid .drow span{flex:1;font-size:13px}
-.detail-grid .drow input{width:90px}
+/* Expense ledger table */
+.exp-table{width:100%;border-collapse:collapse;margin-top:4px}
+.exp-table th{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted);padding:5px 6px;text-align:left;border-bottom:2px solid var(--line)}
+.exp-table th:last-child{text-align:right}
+.exp-row td{padding:0}
+.exp-summary{display:flex;align-items:center;gap:8px;padding:9px 6px;cursor:pointer;list-style:none;
+  border-bottom:1px solid var(--line);position:relative}
+.exp-summary::-webkit-details-marker{display:none}
+.exp-row:last-child .exp-summary{border-bottom:none}
+.exp-color-strip{width:4px;border-radius:3px;flex:none;align-self:stretch;min-height:32px}
+.exp-payer-av{width:28px;height:28px;border-radius:8px;flex:none;display:flex;
+  align-items:center;justify-content:center}
+.exp-payer-av img{width:20px;height:20px;object-fit:contain;animation:iconPulse 2.8s ease-in-out infinite}
+.exp-title-col{flex:1;min-width:0}
+.exp-title{font-weight:700;font-size:13.5px;line-height:1.25}
+.exp-meta{font-size:11px;color:var(--muted);margin-top:1px}
+.exp-tags{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}
+.exp-amount{font-weight:800;font-size:14px;white-space:nowrap;text-align:right;flex:none}
+.exp-detail{padding:8px 6px 12px 46px;font-size:12.5px;border-bottom:1px solid var(--line);background:var(--gray-soft)}
+.exp-row:last-child .exp-detail{border-bottom:none}
 {% endblock %}
 {% block content %}
 
@@ -54,26 +67,53 @@
 
 <div class="card">
   <h2><img src="{% static 'img/icons/leaf.png' %}" alt="">All expenses <span class="sub">{{ expense_rows|length }}</span></h2>
-  {% for row in expense_rows %}
-  <details>
-    <summary style="display:flex;align-items:center;gap:8px">
-      <span style="flex:1">{{ row.exp.title }}</span>
-      <strong>${{ row.exp.amount }}</strong>
-    </summary>
-    <div style="padding:6px 0 10px 4px;font-size:13px">
-      <div class="muted">Paid by {{ row.exp.payer.shown_name }} · {{ row.exp.incurred_on|date:"M j"|default:row.exp.created_at|date:"M j" }}</div>
-      <div style="margin:4px 0"><em>{{ row.exp.split_note }}</em></div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin:4px 0">
-        {% if row.exp.is_pre_trip %}<span class="pill bark">pre-trip</span>{% endif %}
-        {% for t in row.tag_labels %}<span class="pill amber">{{ t }}</span>{% endfor %}
-      </div>
-      {% if row.my_share is not None %}<div>Your share: <strong>${{ row.my_share }}</strong></div>{% elif row.excluded %}<div class="muted">You're not included on this one.</div>{% endif %}
-      {% if row.exp.receipt %}<a href="{{ row.exp.receipt.url }}" target="_blank">View receipt photo</a>{% endif %}
-    </div>
-  </details>
-  {% empty %}
+  {% if expense_rows %}
+  <table class="exp-table">
+    <thead>
+      <tr>
+        <th style="width:4px;padding:5px 0"></th>
+        <th style="width:28px;padding-left:6px"></th>
+        <th>Expense</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in expense_rows %}
+    <tr class="exp-row">
+      <td colspan="4" style="padding:0">
+        <details>
+          <summary class="exp-summary">
+            <span class="exp-color-strip" style="background:{% if row.exp.row_color %}{{ row.exp.row_color }}{% else %}var(--line){% endif %}"></span>
+            <span class="exp-payer-av" style="background:{{ row.exp.payer.swatch }}18;border:1.5px solid {{ row.exp.payer.swatch }}44" title="Paid by {{ row.exp.payer.shown_name }}">
+              <img src="{{ row.exp.payer.icon_url }}" alt="{{ row.exp.payer.shown_name }}">
+            </span>
+            <span class="exp-title-col">
+              <div class="exp-title">{{ row.exp.title }}</div>
+              <div class="exp-meta">{{ row.exp.payer.shown_name }} · {{ row.exp.incurred_on|date:"M j"|default:row.exp.created_at|date:"M j" }}</div>
+              {% if row.exp.tags or row.exp.is_pre_trip %}
+              <div class="exp-tags">
+                {% if row.exp.is_pre_trip %}<span class="pill bark" style="font-size:10px;padding:2px 6px">pre-trip</span>{% endif %}
+                {% for t in row.tag_labels %}<span class="pill amber" style="font-size:10px;padding:2px 6px">{{ t }}</span>{% endfor %}
+              </div>
+              {% endif %}
+            </span>
+            <span class="exp-amount">${{ row.exp.amount }}</span>
+          </summary>
+          <div class="exp-detail">
+            <div class="muted" style="margin-bottom:4px"><em>{{ row.exp.split_note }}</em></div>
+            {% if row.my_share is not None %}<div>Your share: <strong>${{ row.my_share }}</strong></div>
+            {% elif row.excluded %}<div class="muted">You're not on this one.</div>{% endif %}
+            {% if row.exp.receipt %}<a href="{{ row.exp.receipt.url }}" target="_blank" style="margin-top:4px;display:inline-block">View receipt →</a>{% endif %}
+          </div>
+        </details>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
   <p class="muted">No expenses yet — tap <strong>+</strong> to add one.</p>
-  {% endfor %}
+  {% endif %}
 </div>
 
 {% if balance_rows %}

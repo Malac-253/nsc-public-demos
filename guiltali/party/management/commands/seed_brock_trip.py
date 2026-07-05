@@ -640,21 +640,34 @@ class Command(BaseCommand):
                 ),
             )
 
-        # ---- Location suggestions info page (mirrors Cooper's list + area guide) ----
-        loc_page, _ = InfoPage.objects.get_or_create(
-            trip=trip, slug="things-to-do",
+        # ---- Location suggestions: Cooper's picks (hiking, caverns, etc.) ----
+        InfoPage.objects.get_or_create(
+            trip=trip, slug="coopers-picks",
             defaults=dict(
-                title="Things to do nearby",
-                subtitle="Cooper's list + spa & bathhouse picks",
+                title="Cooper's picks",
+                subtitle="Hikes, caverns & outdoor spots",
                 kind=InfoPage.KIND_LOCATION,
                 order=12,
                 body=(
-                    "Everything Cooper found plus a few Berkeley Springs spa options — "
-                    "independent suggestions are also posted on the feed.\n"
-                    + "\n".join(f"- {title}" for title, _, _ in COOPER_SUGGESTIONS)
-                    + "\n- Berkeley Springs State Park bathhouse (Roman bath + soaking tubs)\n"
-                    "- Berkeley Springs Spa Town — walkable strip of day spas downtown\n"
-                    "- Coolfont Resort spa"
+                    "Everything Cooper found — suggestions are also posted on the feed.\n"
+                    + "\n".join(f"- {t}: {desc}" for t, desc, _ in COOPER_SUGGESTIONS)
+                ),
+                created_by=malachi, updated_by=malachi,
+            ),
+        )
+        # ---- Location suggestions: spas & bathhouses (AI-curated) ----
+        InfoPage.objects.get_or_create(
+            trip=trip, slug="area-spas",
+            defaults=dict(
+                title="Spas & bathhouses",
+                subtitle="Berkeley Springs area — relaxation picks",
+                kind=InfoPage.KIND_LOCATION,
+                order=13,
+                body=(
+                    "Berkeley Springs is one of the country's oldest spa towns — mineral springs everywhere.\n"
+                    "- Berkeley Springs State Park bathhouse — historic Roman bath + warm mineral soaking tubs\n"
+                    "- Berkeley Springs Spa Town — walkable strip of independent day spas downtown\n"
+                    "- Coolfont Resort spa — resort-style, a few minutes from town (book ahead)"
                 ),
                 created_by=malachi, updated_by=malachi,
             ),

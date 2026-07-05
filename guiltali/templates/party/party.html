@@ -12,6 +12,10 @@
 .member .chev{color:var(--muted);font-size:18px;flex:none;margin-left:8px}
 .tnote{font-size:11.5px;color:var(--brown);background:var(--amber-soft);border-radius:8px;
   padding:4px 8px;margin-top:4px;display:inline-block}
+.role-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.role-row:last-child{border-bottom:none}
+.role-row .rav{width:36px;height:36px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center}
+.role-row .rav img{width:26px;height:26px;object-fit:contain}
 {% endblock %}
 {% block content %}
 <h1 style="font-size:22px;font-weight:800;letter-spacing:-.02em;margin:2px 0 4px">The party</h1>
@@ -28,7 +32,7 @@
       <div class="subline">
         {{ r.arrive|date:"M j" }} – {{ r.depart|date:"M j" }}
         {% if r.m.plus_one_of %} · +1 of {{ r.m.plus_one_of.shown_name }}{% endif %}
-        {% if r.m.role != 'member' %} · {{ r.m.get_role_display|lower }}{% endif %}
+        {% if r.m.role != 'member' %} · <strong>{{ r.m.get_role_display|lower }}</strong>{% endif %}
       </div>
       {% if r.travel_note %}<span class="tnote">{{ r.travel_note }}</span>{% endif %}
     </span>
@@ -42,4 +46,36 @@
   <p class="muted" style="font-size:12.5px">See everyone side-by-side on the day chart — and edit your own stay.</p>
   <a class="btn ghost small" href="{% url 'schedule' %}" style="margin-top:8px" data-snd="rustle">Open schedule</a>
 </div>
+
+{% if is_admin %}
+<div class="card" style="margin-top:14px">
+  <h2><img src="{% static 'img/icons/compass.png' %}" alt="">Role management <span class="sub">admin only</span></h2>
+  <p class="muted" style="font-size:12.5px;margin-bottom:10px">Promote members to moderator (or remove mod status). You cannot change your own role or another admin's.</p>
+  {% for r in rows %}
+  {% if r.m.id != me.id and r.m.role != 'admin' %}
+  <div class="role-row">
+    <span class="rav" style="border:2px solid {{ r.m.swatch }}55;background:{{ r.m.swatch }}14">
+      <img src="{{ r.m.icon_url }}" alt="">
+    </span>
+    <span style="flex:1;font-size:13.5px;font-weight:600">{{ r.m.shown_name }}</span>
+    <span class="pill {% if r.m.role == 'moderator' %}bark{% else %}muted{% endif %}" style="font-size:11px">
+      {{ r.m.get_role_display }}
+    </span>
+    <form method="post" style="margin:0">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="set_role">
+      <input type="hidden" name="member_id" value="{{ r.m.id }}">
+      {% if r.m.role == 'moderator' %}
+        <input type="hidden" name="role" value="member">
+        <button class="btn ghost small" type="submit" data-snd="snap">Remove mod</button>
+      {% else %}
+        <input type="hidden" name="role" value="moderator">
+        <button class="btn small" type="submit" data-snd="snap">Make mod</button>
+      {% endif %}
+    </form>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

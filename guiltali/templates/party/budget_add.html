@@ -8,6 +8,7 @@
 .member-check.off{opacity:.45;background:var(--gray-soft)}
 .detail-row{display:none}
 .detail-row.included{display:flex;align-items:center;gap:8px;padding:4px 0}
+.rcol-radio:checked + .rcol-swatch{border-color:var(--ink);transform:scale(1.15);box-shadow:0 0 0 2px rgba(0,0,0,.18)}
 {% endblock %}
 {% block content %}
 <a href="{% url 'budget' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Budget</a>
@@ -75,6 +76,20 @@
       {% endfor %}
     </div>
 
+    <label style="margin-top:12px">Row color <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:500">(optional — color-code in the ledger)</span></label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+      <label style="margin:0;cursor:pointer" title="None">
+        <input type="radio" name="row_color" value="" {% if not draft or not draft.row_color %}checked{% endif %} style="display:none" class="rcol-radio">
+        <span class="rcol-swatch" style="display:inline-block;width:26px;height:26px;border-radius:8px;border:3px solid transparent;background:#e8e0d4;vertical-align:middle">✕</span>
+      </label>
+      {% for hex, label in row_color_choices %}
+      <label style="margin:0;cursor:pointer" title="{{ label }}">
+        <input type="radio" name="row_color" value="{{ hex }}" {% if draft and draft.row_color == hex %}checked{% endif %} style="display:none" class="rcol-radio">
+        <span class="rcol-swatch" style="display:inline-block;width:26px;height:26px;border-radius:8px;border:3px solid transparent;background:{{ hex }};vertical-align:middle"></span>
+      </label>
+      {% endfor %}
+    </div>
+
     <label style="display:flex;align-items:center;gap:8px;margin-top:10px;text-transform:none;letter-spacing:0">
       <input type="checkbox" name="is_pre_trip" style="width:auto" {% if draft and draft.is_pre_trip %}checked{% endif %}> Pre-trip expense
     </label>
@@ -108,5 +123,12 @@ function onMethod(v) {
 }
 syncMembers();
 onMethod(document.getElementById("split-method").value);
+document.querySelectorAll(".rcol-radio").forEach(r => {
+  r.addEventListener("change", () =>
+    document.querySelectorAll(".rcol-radio").forEach(x =>
+      x.nextElementSibling.style.borderColor = x.checked ? "var(--ink)" : "transparent"
+    )
+  );
+});
 </script>
 {% endblock %}

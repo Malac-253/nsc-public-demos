@@ -362,6 +362,10 @@ class Expense(models.Model):
     )
     locked = models.BooleanField(default=False, help_text="Admin locked the split in.")
     receipt = models.ImageField(upload_to="receipts/", null=True, blank=True)
+    row_color = models.CharField(
+        max_length=9, blank=True, default="",
+        help_text="Optional hex color for the expense table row.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -603,6 +607,7 @@ class Post(models.Model):
         Poll, null=True, blank=True, on_delete=models.SET_NULL, related_name="feed_post",
         help_text="Polls surface in the feed through their linked post.",
     )
+    archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
