@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}New post{% endblock %}
+{% block extra_css %}
+.what-tabs{display:flex;gap:8px;margin-bottom:12px}
+.what-tabs button{flex:1;padding:10px;border-radius:11px;border:2px solid var(--line);background:#fff;
+  font-weight:800;font-size:13.5px;font-family:inherit;cursor:pointer;color:var(--ink)}
+.what-tabs button.on{background:var(--green);border-color:var(--green-deep);color:#fff}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches label{display:block;width:38px;height:38px;border-radius:11px;border:3px solid var(--line);
+  cursor:pointer;margin:0}
+.swatches input{display:none}
+.swatches input:checked + span{display:block;width:100%;height:100%;border-radius:7px;
+  outline:3px solid var(--green);outline-offset:2px}
+.swatches span{display:block;width:100%;height:100%;border-radius:7px}
+{% endblock %}
+{% block content %}
+<a href="{% url 'feed' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Feed</a>
+
+<div class="card wood" style="margin-top:8px">
+  <h2><img src="{% static 'img/icons/fire.png' %}" alt="">Add to the feed</h2>
+
+  <div class="what-tabs">
+    <button type="button" class="on" id="tab-post" onclick="setWhat('post')" data-snd="snap">Post</button>
+    <button type="button" id="tab-poll" onclick="setWhat('poll')" data-snd="snap">Poll</button>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="post-form">
+    {% csrf_token %}
+    <input type="hidden" name="what" value="post">
+    <label>Type</label>
+    <select name="kind">
+      {% for val, lbl in kind_choices %}<option value="{{ val }}">{{ lbl }}</option>{% endfor %}
+    </select>
+    <label>Title (optional)</label>
+    <input type="text" name="title" maxlength="160" placeholder="Give it a headline">
+    <label>What's happening?</label>
+    <textarea name="text" rows="3" placeholder="Little tweet-sized update…"></textarea>
+    <label>Pictures (you can pick several)</label>
+    <input type="file" name="more_images" accept="image/*" multiple>
+    <label>Link (becomes a button)</label>
+    <div class="formrow">
+      <input type="url" name="link_url" placeholder="https://…">
+      <input type="text" name="link_label" placeholder="Button label" maxlength="80">
+    </div>
+    <label>Card color</label>
+    <div class="swatches">
+      {% for val, lbl in bg_choices %}
+      <label title="{{ lbl }}">
+        <input type="radio" name="bg_color" value="{{ val }}" {% if not val %}checked{% endif %}>
+        <span style="background:{{ val|default:'#fffdf6' }}"></span>
+      </label>
+      {% endfor %}
+    </div>
+    <label>Posting for someone else? (optional)</label>
+    <input type="text" name="suggested_by_note" maxlength="120" placeholder="e.g. Cooper's suggestion">
+    <button class="btn" type="submit" style="width:100%;margin-top:14px">Post it</button>
+  </form>
+
+  <form method="post" id="poll-form" hidden>
+    {% csrf_token %}
+    <input type="hidden" name="what" value="poll">
+    <label>Question</label>
+    <input type="text" name="question" maxlength="300" placeholder="e.g. What do we eat Friday night?">
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
+      <input type="checkbox" name="two_stage" style="width:auto" onchange="document.getElementById('opt-block').hidden = this.checked">
+      Two-step poll — everyone suggests first, then everyone votes (not on their own)
+    </label>
+    <div id="opt-block">
+      <label>Options (one per line)</label>
+      <textarea name="options" rows="4" placeholder="Option one&#10;Option two"></textarea>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
+      <input type="checkbox" name="multiple_choice" style="width:auto"> Allow multiple picks
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
+      <input type="checkbox" name="anonymous" style="width:auto"> Hide who voted
+    </label>
+    <label>Closes</label>
+    <select name="close_mode" id="close-mode" onchange="document.getElementById('custom-close').hidden = this.value !== 'custom'">
+      <option value="trip_end" selected>2 days after the trip ends (default)</option>
+      <option value="hour">1 hour from now</option>
+      <option value="custom">Pick a date &amp; time</option>
+      <option value="none">Never — I'll close it manually</option>
+    </select>
+    <input type="datetime-local" name="closes_at" id="custom-close" hidden>
+    <button class="btn" type="submit" style="width:100%;margin-top:14px">Start the poll</button>
+  </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function setWhat(w) {
+  document.getElementById("post-form").hidden = w !== "post";
+  document.getElementById("poll-form").hidden = w !== "poll";
+  document.getElementById("tab-post").classList.toggle("on", w === "post");
+  document.getElementById("tab-poll").classList.toggle("on", w === "poll");
+}
+</script>
+{% endblock %}

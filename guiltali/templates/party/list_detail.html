@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ tl.name }}{% endblock %}
+{% block content %}
+<a href="{% url 'info' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Information</a>
+<div class="card" style="margin-top:8px">
+  <div style="display:flex;align-items:center;gap:8px">
+    <h2 style="flex:1;margin-bottom:2px"><img src="{% static 'img/icons/leaf.png' %}" alt="">{{ tl.name }}
+      <span class="sub">{{ tl.done_count }}/{{ tl.items.count }}</span></h2>
+    <button style="border:none;background:var(--gray-soft);border-radius:8px;width:30px;height:30px;color:var(--muted);cursor:pointer"
+      type="button" onclick="copyLink(this)" title="Copy link" data-snd="rustle">⎘</button>
+  </div>
+  {% if tl.note %}<p class="muted" style="margin-bottom:8px;font-size:12.5px">{{ tl.note }}</p>{% endif %}
+  {% for item in tl.items.all %}
+  <div class="item-row">
+    <form method="post" style="display:contents">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="toggle">
+      <input type="hidden" name="item_id" value="{{ item.id }}">
+      <button class="check {% if item.done %}done{% endif %}" type="submit" data-snd="snap">✓</button>
+    </form>
+    <span class="txt {% if item.done %}done{% endif %}" style="font-size:14px">{{ item.text }}</span>
+    <span class="qty">
+      {% if item.quantity %}{{ item.quantity }}{% endif %}
+      {% if item.updated_by %} · {% if item.done %}checked{% else %}unchecked{% endif %} by {{ item.updated_by.shown_name }}{% if item.updated_at %}, {{ item.updated_at|timesince }} ago{% endif %}{% endif %}
+    </span>
+    {% if is_staff %}
+    <form method="post" style="display:contents">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="remove_item">
+      <input type="hidden" name="item_id" value="{{ item.id }}">
+      <button class="btn danger small" style="padding:4px 8px" type="submit" data-snd="snap" title="Remove">×</button>
+    </form>
+    {% endif %}
+  </div>
+  {% empty %}
+  <p class="muted">Nothing on this list yet.</p>
+  {% endfor %}
+
+  {% if is_staff %}
+  <div class="divider"></div>
+  <form method="post" class="formrow">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add_item">
+    <input type="text" name="text" placeholder="Add an item…" required>
+    <button class="btn small" type="submit" data-snd="rustle">Add</button>
+  </form>
+  <form method="post" style="display:flex;gap:8px;margin-top:8px;align-items:center">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="rename">
+    <input type="text" name="name" value="{{ tl.name }}" style="flex:1" placeholder="List title">
+    <button class="btn ghost small" type="submit" data-snd="rustle">Rename</button>
+  </form>
+  <form method="post" style="margin-top:8px">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="resurface">
+    <button class="btn brown small" type="submit" data-snd="hoot">Resurface in the feed</button>
+  </form>
+  {% endif %}
+
+  <p class="muted" style="font-size:11px;margin-top:10px">
+    Started by {{ tl.created_by.shown_name|default:"the trip" }}
+    {% if tl.updated_by %} · last touched by {{ tl.updated_by.shown_name }}, {{ tl.updated_at|timesince }} ago{% endif %}
+  </p>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function copyLink(btn) {
+  navigator.clipboard?.writeText(window.location.href);
+  const old = btn.textContent; btn.textContent = "✓"; setTimeout(() => btn.textContent = old, 1200);
+}
+</script>
+{% endblock %}

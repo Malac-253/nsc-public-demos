@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ page.title }}{% endblock %}
+{% block content %}
+<a href="{% url 'info' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Information</a>
+<div class="card wood" style="margin-top:8px">
+  <div style="display:flex;align-items:center;gap:8px">
+    <h2 style="flex:1;margin-bottom:2px">
+      {% if page.kind == 'recipe' %}<img src="{% static 'img/icons/fire.png' %}" alt="">{% else %}<img src="{% static 'img/icons/lantern.png' %}" alt="">{% endif %}
+      {{ page.title }}
+    </h2>
+    <button style="border:none;background:var(--gray-soft);border-radius:8px;width:30px;height:30px;color:var(--muted);cursor:pointer"
+      type="button" onclick="copyLink(this)" title="Copy link" data-snd="rustle">⎘</button>
+  </div>
+  {% if page.subtitle %}<p class="muted" style="margin-top:-4px;margin-bottom:10px">{{ page.subtitle }}</p>{% endif %}
+  {% if page.restricted %}
+  <p class="pill red" style="margin-bottom:10px">Visible only to admins, moderators &amp; named members</p>
+  {% endif %}
+  {% for b in blocks %}
+    {% if b.kind == 'p' %}
+      <p style="font-size:14px;margin-bottom:10px">{{ b.text }}</p>
+    {% else %}
+      <ul style="margin:0 0 10px 20px;font-size:14px">
+        {% for it in b.items %}<li style="margin-bottom:4px">{{ it }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+  {% endfor %}
+  <div class="divider"></div>
+  <p class="muted" style="font-size:11px">
+    {% if page.created_by %}Added by {{ page.created_by.shown_name }}{% endif %}
+    {% if page.updated_by %} · edited by {{ page.updated_by.shown_name }}, {{ page.updated_at|timesince }} ago{% endif %}
+  </p>
+  <form method="post" style="margin-top:8px">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="resurface">
+    <button class="btn brown small" type="submit" data-snd="hoot">Resurface in the feed</button>
+  </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function copyLink(btn) {
+  navigator.clipboard?.writeText(window.location.href);
+  const old = btn.textContent; btn.textContent = "✓"; setTimeout(() => btn.textContent = old, 1200);
+}
+</script>
+{% endblock %}

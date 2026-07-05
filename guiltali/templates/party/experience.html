@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ trip.name }}{% endblock %}
+{% block extra_css %}
+.exp-hero{position:relative;border-radius:16px;overflow:hidden;margin-bottom:14px;
+  background:linear-gradient(160deg,#2f5540,#1e3a2b);padding:26px 18px;text-align:center;
+  border:1px solid rgba(0,0,0,.1);box-shadow:var(--shadow)}
+.exp-hero h1{font-family:var(--display);font-size:28px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.exp-hero .tag{color:#c9e3cf;font-size:13.5px;margin-top:6px}
+.exp-hero .dates{display:inline-block;margin-top:12px;font-size:11px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--amber);background:rgba(0,0,0,.32);padding:6px 14px;border-radius:999px;
+  animation:datePulse 2.2s ease-in-out infinite}
+{% endblock %}
+{% block content %}
+
+<div class="exp-hero">
+  <h1>{{ trip.name }}</h1>
+  {% if trip.tagline %}<div class="tag">{{ trip.tagline }}</div>{% endif %}
+  <div class="dates">{{ trip.start_date|date:"D" }}–{{ trip.end_date|date:"D" }} · {{ trip.start_date|date:"M j" }}–{{ trip.end_date|date:"M j, Y" }}</div>
+</div>
+
+{% if can_edit %}
+<a class="btn ghost small" href="{% url 'trip_edit' %}" data-snd="rustle" style="margin-bottom:12px;display:inline-block">Edit trip details</a>
+{% endif %}
+
+{% if trip.listing_summary %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/tent.png' %}" alt="">About the stay</h2>
+  <p style="font-size:14px">{{ trip.listing_summary }}</p>
+  <a class="btn ghost small" href="{% url 'stay' %}" data-snd="rustle" style="margin-top:8px">See photos &amp; facts</a>
+</div>
+{% endif %}
+
+{% if area_blocks %}
+<div class="card wood">
+  <h2><img src="{% static 'img/icons/pine.png' %}" alt="">Berkeley Springs <span class="sub">spas, trails &amp; more</span></h2>
+  {% for b in area_blocks %}
+    {% if b.kind == 'p' %}<p style="font-size:14px;margin-bottom:8px">{{ b.text }}</p>
+    {% else %}<ul style="margin:0 0 8px 20px;font-size:14px">{% for it in b.items %}<li style="margin-bottom:4px">{{ it }}</li>{% endfor %}</ul>{% endif %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="card wood">
+  <h2><img src="{% static 'img/icons/pine.png' %}" alt="">Berkeley Springs</h2>
+  <p class="muted">Berkeley Springs, WV is known as "America's First Spa" — full of bathhouses, mineral springs, and easy access to hiking in the Potomac Highlands. {% if can_edit %}Add spa and trail suggestions from the edit page.{% endif %}</p>
+</div>
+{% endif %}
+
+{% if house_blocks %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">House notes</h2>
+  {% for b in house_blocks %}
+    {% if b.kind == 'p' %}<p style="font-size:14px;margin-bottom:8px">{{ b.text }}</p>
+    {% else %}<ul style="margin:0 0 8px 20px;font-size:14px">{% for it in b.items %}<li style="margin-bottom:4px">{{ it }}</li>{% endfor %}</ul>{% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

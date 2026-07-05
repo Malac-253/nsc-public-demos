@@ -1,0 +1,327 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}Brock Trip 2026{% endblock %} · Guiltali</title>
+<meta name="theme-color" content="#e8ece8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e9ece7; --card:#f4f6f4; --ink:#2a332c; --muted:#6b756b;
+  --green:#2f7d4f; --green-deep:#1e5a38; --green-soft:#d4e6d6; --green-mid:#3a7a55;
+  --gray:#8a9490; --gray-deep:#5c6560; --gray-soft:#e9ede9; --gray-line:#bcc4bd;
+  --brown:#5a6b5e; --brown-deep:#3d4a42; --bark:#6b8072; --bark-soft:#dfe6e0;
+  --amber:#c9a441; --amber-soft:#f7efd7; --red:#a83a2a; --red-soft:#f7e2dd;
+  --burgundy:#7a2e35; --burgundy-deep:#54202a; --burgundy-soft:#f1dde0;
+  --line:var(--gray-line); --radius:14px;
+  --shadow:0 1px 2px rgba(42,51,44,.06),0 6px 18px rgba(42,51,44,.08);
+  --px:"Plus Jakarta Sans",-apple-system,sans-serif;
+  --display:"Plus Jakarta Sans",-apple-system,sans-serif;
+  --nav-h:70px;
+}
+@keyframes iconPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:.88}}
+@keyframes datePulse{0%,100%{color:var(--amber);text-shadow:0 0 0 rgba(201,164,65,0)}50%{color:#e0b93f;text-shadow:0 0 10px rgba(224,185,63,.55)}}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:"Plus Jakarta Sans",-apple-system,"Segoe UI",sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.55;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  min-height:100vh;
+  background-image:
+    linear-gradient(180deg,rgba(212,230,214,.45) 0%,transparent 120px),
+    radial-gradient(rgba(47,125,79,.04) 1px,transparent 1px);
+  background-size:100% 100%,22px 22px;
+}
+a{color:var(--green);text-decoration:none}
+main{max-width:640px;margin:0 auto;padding:16px 16px 40px;animation:pageIn .35s ease both}
+@keyframes pageIn{from{opacity:0}to{opacity:1}}
+.pixelated{image-rendering:pixelated}
+h1.px,h2.px,.px-head{font-family:var(--px);letter-spacing:0}
+
+/* ---------- header ---------- */
+header.app{position:sticky;top:0;z-index:30;
+  background:linear-gradient(180deg,#3d6b52 0%,#2f5540 100%);
+  border-bottom:3px solid #234733;box-shadow:0 3px 12px rgba(30,50,38,.25)}
+header.app .inner{max-width:640px;margin:0 auto;display:flex;align-items:center;
+  gap:10px;padding:9px 14px;color:#e8f2ea}
+.brand{display:flex;align-items:center;gap:9px;min-width:0}
+.brand img.badge{width:42px;height:42px;object-fit:contain;
+  animation:iconPulse 2.6s ease-in-out infinite;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-3px) rotate(2deg)}}
+.t{font-family:var(--display);font-size:15px;font-weight:800;letter-spacing:-.02em;
+  line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f4faf5;
+  flex:1;min-width:0;transition:opacity .15s ease}
+.t:active{opacity:.7}
+.brand{display:flex;align-items:center;flex:none}
+.whoami{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px}
+.whoami img{width:28px;height:28px;object-fit:contain;animation:iconPulse 2.8s ease-in-out infinite}
+.role-chip{font-size:9px;font-family:var(--display);font-weight:700;text-transform:uppercase;
+  padding:2px 7px;border-radius:6px;background:rgba(0,0,0,.2);color:#d4e6d6}
+.whoami a{color:#c8ddd0;font-size:11.5px}
+
+/* ---------- announcements ---------- */
+.announce{max-width:640px;margin:10px auto 0;padding:0 16px}
+.announce .note{position:relative;background:var(--amber-soft);border:2px solid #dfc98a;
+  color:#6d5200;border-radius:12px;padding:9px 34px 9px 12px;font-size:13.5px;margin-bottom:6px;
+  animation:pageIn .5s ease both}
+.announce .note .x{position:absolute;right:8px;top:7px;border:none;background:#e6d3a0;
+  width:22px;height:22px;border-radius:7px;font-weight:800;color:#6d5200;cursor:pointer;line-height:1}
+
+/* ---------- cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px;margin-bottom:14px;position:relative}
+.card.wood{border-color:var(--gray-line);
+  background:linear-gradient(180deg,#f6f8f6 0%,#e8ece8 100%)}
+.card h2{font-size:15px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card h2 .sub{font-weight:600;font-size:12px;color:var(--muted);margin-left:auto}
+.card h2 img{width:32px;height:32px;object-fit:contain;flex:none;
+  filter:drop-shadow(0 0 0 rgba(0,0,0,0)) drop-shadow(0 1px 1px rgba(30,50,38,.25));
+  animation:iconPulse 2.8s ease-in-out infinite}
+
+/* ---------- buttons & forms ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  background:var(--green);color:#fff;border:none;border-bottom:3px solid var(--green-deep);
+  border-radius:11px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:transform .1s ease}
+.btn:active{transform:translateY(2px);border-bottom-width:1px}
+.btn.brown{background:var(--bark);border-bottom-color:var(--brown-deep)}
+.btn.ghost{background:var(--gray-soft);color:var(--ink);border:1px solid var(--line);border-bottom-width:2px}
+.btn.small{padding:6px 12px;font-size:12.5px;border-radius:9px}
+.btn.danger{background:var(--red);border-bottom-color:#7c2a1e}
+.btn img{width:24px;height:24px;object-fit:contain;animation:iconPulse 2.8s ease-in-out infinite}
+input[type=text],input[type=number],input[type=password],input[type=date],input[type=url],select,textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+  font-size:14px;background:var(--gray-soft);font-family:inherit;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--green);outline-offset:1px}
+label{font-size:12px;font-weight:700;color:var(--muted);display:block;margin:10px 0 4px;
+  text-transform:uppercase;letter-spacing:.4px}
+.formrow{display:flex;gap:8px}
+.formrow>*{flex:1}
+
+/* ---------- misc ---------- */
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:8px;
+  background:var(--green-soft);color:var(--green-deep)}
+.pill.amber{background:var(--amber-soft);color:#8a6a00}
+.pill.red{background:var(--red-soft);color:var(--red)}
+.pill.bark{background:var(--bark-soft);color:var(--gray-deep)}
+.muted{color:var(--muted);font-size:13px}
+.divider{height:1px;background:var(--line);margin:12px 0;border-radius:2px}
+.msg{background:var(--green-soft);color:var(--green-deep);border:1px solid #b8d4bb;
+  border-radius:10px;padding:9px 12px;font-size:13.5px;margin-bottom:10px;animation:pageIn .3s ease both}
+.msg.error{background:var(--red-soft);color:var(--red);border-color:#e4b3a9}
+.item-row{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.item-row:last-child{border-bottom:none}
+.item-row .qty{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+.check{width:23px;height:23px;border-radius:7px;border:1px solid var(--gray-line);flex:none;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--gray-soft);
+  transition:all .15s ease;font-size:13px;color:transparent}
+.check.done{background:var(--green);border-color:var(--green-deep);color:#fff;animation:pop .25s ease}
+@keyframes pop{50%{transform:scale(1.3)}}
+.item-row .txt.done{text-decoration:line-through;color:var(--muted)}
+.money-pos{color:var(--green-deep);font-weight:800}
+.money-neg{color:var(--red);font-weight:800}
+.avatar-px{width:50px;height:50px;border-radius:13px;display:flex;align-items:center;
+  justify-content:center;flex:none;border:2px solid var(--gray-line);background:var(--gray-soft)}
+.avatar-px img{width:38px;height:38px;object-fit:contain;display:block;
+  animation:iconPulse 2.8s ease-in-out infinite}
+.icon-sm{width:34px;height:34px;object-fit:contain;flex:none;display:block;
+  animation:iconPulse 2.8s ease-in-out infinite}
+.icon-outline{padding:5px;border-radius:10px;background:var(--gray-soft);border:1px solid var(--line)}
+details summary{cursor:pointer;font-weight:700;font-size:14px;padding:6px 0;list-style:none}
+details summary::-webkit-details-marker{display:none}
+
+/* ---------- bottom nav ---------- */
+nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;
+  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom);
+  background:linear-gradient(180deg,#3d6b52 0%,#2a4a38 100%);
+  border-top:3px solid #234733;display:flex;justify-content:space-around;align-items:stretch}
+nav.tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;font-size:10px;font-family:var(--display);font-weight:700;color:#9db8a6;transition:color .15s ease}
+nav.tabbar a img{width:40px;height:40px;object-fit:contain;transition:transform .18s ease;
+  filter:saturate(.7) brightness(.95);animation:iconPulse 3s ease-in-out infinite}
+nav.tabbar a.active{color:#e8f5ea}
+nav.tabbar a.active img{transform:translateY(-2px) scale(1.15);filter:none;
+  animation:iconPulse 1.8s ease-in-out infinite}
+@keyframes wiggle{0%,100%{rotate:-4deg}50%{rotate:4deg}}
+
+/* ---------- floating + (viewport-fixed, above tab bar) ---------- */
+.fab{position:fixed;right:18px;bottom:calc(var(--nav-h) + 14px + env(safe-area-inset-bottom));
+  z-index:45;width:54px;height:54px;border-radius:16px;background:var(--green);
+  border:none;border-bottom:4px solid var(--green-deep);color:#fff;font-size:28px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 6px 18px rgba(31,66,42,.4);text-decoration:none;
+  -webkit-backface-visibility:hidden;backface-visibility:hidden}
+.fab:active{transform:translateY(2px)}
+.fab.budget{width:auto;height:auto;min-height:54px;padding:0 20px;border-radius:28px;
+  font-size:15px;gap:8px;background:var(--bark);border-bottom-color:var(--brown-deep);
+  box-shadow:0 6px 18px rgba(74,53,32,.35)}
+.fab.budget .fab-plus{font-size:22px;line-height:1}
+.fab.settle{width:auto;height:auto;min-height:54px;padding:0 20px;border-radius:28px;
+  font-size:15px;gap:8px;background:var(--burgundy);border-bottom:4px solid var(--burgundy-deep);
+  box-shadow:0 6px 18px rgba(122,46,53,.35)}
+.fab.settle .fab-plus{font-size:22px;line-height:1}
+
+/* pulsing badge ring for trips home */
+.badge-ring{position:relative}
+.badge-ring::after{content:"";position:absolute;inset:-7px;border-radius:50%;
+  border:3px dashed var(--green);animation:spinring 9s linear infinite}
+@keyframes spinring{to{transform:rotate(360deg)}}
+{% block extra_css %}{% endblock %}
+</style>
+</head>
+<body {% if user.is_authenticated %}data-sounds="{% if sounds_on %}1{% else %}0{% endif %}"{% endif %}>
+{% if user.is_authenticated and trip and me %}
+<header class="app">
+  <div class="inner">
+    <a href="{% url 'home' %}" class="brand" data-snd="rustle" title="Home" style="cursor:pointer">
+      <img class="badge" src="{% static 'img/px-trip-badge.png' %}" alt="">
+    </a>
+    <a href="{% url 'experience' %}" class="t" data-snd="rustle" title="Trip experience">{{ trip.name }}</a>
+    <div class="whoami">
+      <a href="{% url 'settings' %}" title="You — profile & settings" style="display:flex;align-items:center;gap:5px">
+        <span class="avatar-px" style="width:32px;height:32px;background:{{ me.swatch }}22"><img src="{{ me.icon_url }}" alt=""></span>
+        <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#cfe4d4">You</span>
+      </a>
+      <span class="role-chip">{{ me.get_role_display }}</span>
+      <a href="{% url 'logout' %}" onclick="event.preventDefault();document.getElementById('logout-form').submit()">out</a>
+      <form id="logout-form" method="post" action="{% url 'logout' %}" hidden>{% csrf_token %}</form>
+    </div>
+  </div>
+</header>
+{% if bar_announcements %}
+<div class="announce">
+  {% for a in bar_announcements %}
+    {% if not a.audience or a.audience.id == me.id or me.is_staff_role %}
+    <div class="note" data-announce="{{ a.id }}">
+      {% if a.audience %}<strong>{{ a.audience.shown_name }}</strong> — {% endif %}{{ a.text }}
+      <button class="x" type="button" data-snd="snap" onclick="dismissNote(this)">×</button>
+    </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+{% endif %}
+
+<main>
+  {% if messages %}{% for m in messages %}
+    <div class="msg {% if m.tags == 'error' %}error{% endif %}">{{ m }}</div>
+  {% endfor %}{% endif %}
+  {% block content %}{% endblock %}
+</main>
+
+{% block fab %}{% endblock %}
+
+{% if user.is_authenticated and trip and me %}
+<nav class="tabbar">
+  {% url 'home' as u_home %}{% url 'budget' as u_bud %}{% url 'info' as u_info %}{% url 'feed' as u_feed %}{% url 'party' as u_party %}
+  <a href="{{ u_home }}" data-snd="rustle" class="{% if request.path == u_home or '/itinerary' in request.path or '/stay' in request.path or '/schedule' in request.path %}active{% endif %}"><img src="{% static 'img/icons/mountain.png' %}" alt="">Trip</a>
+  <a href="{{ u_bud }}" data-snd="rustle" class="{% if '/budget' in request.path %}active{% endif %}"><img src="{% static 'img/icons/acorn.png' %}" alt="">Budget</a>
+  <a href="{{ u_info }}" data-snd="rustle" class="{% if '/info' in request.path %}active{% endif %}"><img src="{% static 'img/icons/lantern.png' %}" alt="">Info</a>
+  <a href="{{ u_feed }}" data-snd="rustle" class="{% if '/feed' in request.path or '/polls' in request.path or '/photos' in request.path %}active{% endif %}"><img src="{% static 'img/icons/fire.png' %}" alt="">Feed</a>
+  <a href="{{ u_party }}" data-snd="rustle" class="{% if '/party' in request.path %}active{% endif %}"><img src="{% static 'img/icons/compass.png' %}" alt="">Party</a>
+</nav>
+{% endif %}
+
+<script>
+/* ------- forest sound engine (synthesized, no files needed) ------- */
+const SND = (() => {
+  let ctx = null;
+  const on = () => document.body.dataset.sounds !== "0";
+  const ac = () => {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  };
+  // iOS/Chrome mobile suspend audio until a real user gesture unlocks it —
+  // without this, the first several taps play silently.
+  const unlock = () => {
+    const c = ac();
+    const buf = c.createBuffer(1, 1, 22050);
+    const src = c.createBufferSource();
+    src.buffer = buf; src.connect(c.destination); src.start(0);
+  };
+  ["pointerdown", "touchend", "click"].forEach(evt =>
+    document.addEventListener(evt, unlock, { once: true, passive: true }));
+  function noiseBuf(sec, fade) {
+    const c = ac(), buf = c.createBuffer(1, c.sampleRate * sec, c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      const t = i / d.length;
+      d[i] = (Math.random() * 2 - 1) * (fade ? Math.pow(1 - t, 2.2) : 1);
+    }
+    return buf;
+  }
+  function rustle() { // leaves
+    if (!on()) return;
+    const c = ac(), src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = noiseBuf(.22, true); f.type = "bandpass"; f.frequency.value = 4200; f.Q.value = .9;
+    g.gain.setValueAtTime(.14, c.currentTime);
+    src.connect(f).connect(g).connect(c.destination); src.start();
+  }
+  function snap() { // twig break
+    if (!on()) return;
+    const c = ac(), src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = noiseBuf(.06, true); f.type = "highpass"; f.frequency.value = 1800;
+    g.gain.setValueAtTime(.3, c.currentTime);
+    src.connect(f).connect(g).connect(c.destination); src.start();
+  }
+  function hoot() { // owl, for success
+    if (!on()) return;
+    const c = ac(), t = c.currentTime;
+    [[392, 0], [311, .18]].forEach(([hz, dt]) => {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(hz, t + dt);
+      g.gain.setValueAtTime(0, t + dt);
+      g.gain.linearRampToValueAtTime(.16, t + dt + .04);
+      g.gain.exponentialRampToValueAtTime(.001, t + dt + .22);
+      o.connect(g).connect(c.destination); o.start(t + dt); o.stop(t + dt + .25);
+    });
+  }
+  return { rustle, snap, hoot };
+})();
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-snd]");
+  if (el) { SND[el.dataset.snd]?.(); return; }
+  if (e.target.closest(".btn")) SND.snap();
+});
+document.addEventListener("submit", () => SND.hoot(), true);
+
+/* ------- dismissible announcements ------- */
+const dismissed = JSON.parse(localStorage.getItem("gt_dismissed") || "[]");
+document.querySelectorAll(".note[data-announce]").forEach(n => {
+  if (dismissed.includes(n.dataset.announce)) n.remove();
+});
+function dismissNote(btn) {
+  const n = btn.closest(".note");
+  dismissed.push(n.dataset.announce);
+  localStorage.setItem("gt_dismissed", JSON.stringify(dismissed));
+  n.style.cssText = "transition:all .3s ease;opacity:0;transform:translateX(30px)";
+  setTimeout(() => n.remove(), 300);
+}
+
+/* ------- parallax layers ------- */
+(function () {
+  const layers = document.querySelectorAll("[data-parallax]");
+  if (!layers.length) return;
+  let ticking = false;
+  window.addEventListener("scroll", () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const y = window.scrollY;
+      layers.forEach(l => {
+        l.style.transform = `translateY(${y * parseFloat(l.dataset.parallax)}px)`;
+      });
+      ticking = false;
+    });
+  }, { passive: true });
+})();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

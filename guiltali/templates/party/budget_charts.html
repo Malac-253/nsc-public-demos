@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Where the money went{% endblock %}
+{% block extra_css %}
+.tagbar{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12.5px}
+.tagbar .track{flex:1;height:16px;background:#f2ecdc;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.tagbar .fillb{height:100%;border-radius:8px;background:var(--green);animation:growb .9s ease both}
+@keyframes growb{from{width:0}}
+.tagbar .lbl{width:92px;flex:none;font-weight:700}
+.tagbar .amt{width:70px;flex:none;text-align:right;color:var(--muted);font-size:11.5px}
+.personbar{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.personbar:last-child{border-bottom:none}
+{% endblock %}
+{% block content %}
+<a href="{% url 'budget' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Budget</a>
+<h1 style="font-size:20px;font-weight:800;margin:8px 0 12px">Where the money went</h1>
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/acorn.png' %}" alt="">By category <span class="sub">${{ total_spent|floatformat:2 }} total</span></h2>
+  {% for r in tag_rows %}
+  <div class="tagbar">
+    <span class="lbl">{{ r.label }}</span>
+    <span class="track"><span class="fillb" style="width:{{ r.pct }}%;display:block"></span></span>
+    <span class="amt">${{ r.amount }} · {{ r.pct }}%</span>
+  </div>
+  {% empty %}<p class="muted">No expenses logged yet.</p>{% endfor %}
+</div>
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/leaf.png' %}" alt="">By person</h2>
+  {% for row in person_rows %}
+  <div class="personbar">
+    <span class="avatar-px" style="width:36px;height:36px;background:{{ row.member.swatch }}18;border-color:{{ row.member.swatch }}44"><img src="{{ row.member.icon_url }}" alt=""></span>
+    <span style="flex:1;font-size:13.5px">{{ row.member.shown_name }}</span>
+    <span class="muted" style="font-size:12px">paid ${{ row.paid|floatformat:2 }}</span>
+    <span class="{% if row.balance >= 0 %}money-pos{% else %}money-neg{% endif %}" style="font-size:13px;width:70px;text-align:right">
+      {% if row.balance >= 0 %}+{% endif %}${{ row.balance|floatformat:2 }}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

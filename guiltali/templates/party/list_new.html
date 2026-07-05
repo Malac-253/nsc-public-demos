@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}New list{% endblock %}
+{% block content %}
+<a href="{% url 'info' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Information</a>
+<div class="card" style="margin-top:8px">
+  <h2>New list</h2>
+  <form method="post">
+    {% csrf_token %}
+    <label>Title</label>
+    <input type="text" name="name" placeholder="e.g. Grocery run" required>
+    <label>Kind</label>
+    <select name="kind">
+      {% for value, label in kind_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+    </select>
+    <label>Items (one per line)</label>
+    <textarea name="items" rows="6" placeholder="Zucchini&#10;Buns&#10;Charcoal"></textarea>
+    <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:600;margin-top:12px">
+      <input type="checkbox" name="announce" checked style="width:auto"> Post an announcement to the feed
+    </label>
+    <button class="btn" type="submit" style="margin-top:14px;width:100%" data-snd="hoot">Create list</button>
+  </form>
+</div>
+{% endblock %}

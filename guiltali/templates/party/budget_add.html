@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Add expense{% endblock %}
+{% block extra_css %}
+.member-check{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--line);border-radius:9px;
+  padding:6px 10px;font-size:12.5px;cursor:pointer;background:#fff;margin:0 6px 6px 0}
+.member-check input{width:auto;accent-color:var(--green)}
+.member-check.off{opacity:.45;background:var(--gray-soft)}
+.detail-row{display:none}
+.detail-row.included{display:flex;align-items:center;gap:8px;padding:4px 0}
+{% endblock %}
+{% block content %}
+<a href="{% url 'budget' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Budget</a>
+
+<div class="card wood" style="margin-top:8px">
+  <h2><img src="{% static 'img/icons/acorn.png' %}" alt="">Add an expense</h2>
+  {% if draft %}<p class="muted" style="font-size:12.5px;margin-bottom:10px">Editing your preview — change anything and preview again.</p>{% endif %}
+  <form method="post" id="expense-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add">
+    <label>What was it?</label>
+    <input type="text" name="title" placeholder="e.g. Firewood, gas, groceries" required autofocus
+           value="{{ draft.title|default:'' }}">
+    <div class="formrow">
+      <div>
+        <label>Amount ($)</label>
+        <input type="number" name="amount" step="0.01" min="0.01" inputmode="decimal" required
+               value="{{ draft.amount|default:'' }}">
+      </div>
+      <div>
+        <label>Who paid</label>
+        <select name="payer">
+          {% for m in members %}
+          <option value="{{ m.id }}" {% if draft %}{% if m.id == draft.payer_id %}selected{% endif %}{% elif m.id == me.id %}selected{% endif %}>{{ m.shown_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <label>Who's in on this?</label>
+    <p class="muted" style="font-size:12px;margin:-2px 0 8px">Uncheck anyone this expense doesn't apply to — only checked people split the cost.</p>
+    <div style="display:flex;flex-wrap:wrap">
+      {% for row in member_fields %}
+      <label class="member-check" data-member="{{ row.member.id }}">
+        <input type="checkbox" name="include_{{ row.member.id }}" value="1"
+          {% if row.included %}checked{% endif %}
+          onchange="syncMembers()"> {{ row.member.shown_name }}
+      </label>
+      {% endfor %}
+    </div>
+
+    <label>Tags</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      {% for val, lbl in tag_choices %}
+      <label class="tag-check" style="margin:0;text-transform:none;letter-spacing:0;border:2px solid var(--line);border-radius:9px;padding:5px 10px;font-size:12.5px;cursor:pointer;background:#fff">
+        <input type="checkbox" name="tags" value="{{ val }}" {% if draft and val in draft.tags %}checked{% endif %}> {{ lbl }}
+      </label>
+      {% endfor %}
+    </div>
+
+    <label>Split method</label>
+    <select name="split_method" id="split-method" onchange="onMethod(this.value)">
+      {% for val, label in split_choices %}
+      <option value="{{ val }}" {% if draft and draft.method == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <div class="detail-grid" id="detail-grid" style="display:none;margin-top:8px">
+      <p class="muted" style="font-size:12px;margin-top:6px" id="detail-hint"></p>
+      {% for row in member_fields %}
+      <div class="detail-row included" data-member="{{ row.member.id }}">
+        <span style="flex:1;font-size:13px">{{ row.member.shown_name }}</span>
+        <input type="number" name="detail_{{ row.member.id }}" step="0.01" inputmode="decimal" placeholder="0" style="width:90px"
+               value="{{ row.detail_val }}">
+      </div>
+      {% endfor %}
+    </div>
+
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;text-transform:none;letter-spacing:0">
+      <input type="checkbox" name="is_pre_trip" style="width:auto" {% if draft and draft.is_pre_trip %}checked{% endif %}> Pre-trip expense
+    </label>
+    <button class="btn" type="submit" style="width:100%;margin-top:14px">Preview the split</button>
+  </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const needsDetail = {
+  percent: "Enter each included person's percentage (should total 100).",
+  shares: "Enter share counts for included people — e.g. couples take 2.",
+  custom: "Enter exact dollar amounts for included people; leftover splits equally among them.",
+  adjust: "Enter +/- adjustment from an equal share for each included person (should roughly net to zero)."
+};
+function syncMembers() {
+  document.querySelectorAll(".member-check").forEach(lbl => {
+    const on = lbl.querySelector("input").checked;
+    lbl.classList.toggle("off", !on);
+    const mid = lbl.dataset.member;
+    document.querySelectorAll(`.detail-row[data-member="${mid}"]`).forEach(row => {
+      row.classList.toggle("included", on);
+    });
+  });
+}
+function onMethod(v) {
+  const g = document.getElementById("detail-grid");
+  const hint = document.getElementById("detail-hint");
+  if (needsDetail[v]) { g.style.display = "block"; hint.textContent = needsDetail[v]; }
+  else g.style.display = "none";
+}
+syncMembers();
+onMethod(document.getElementById("split-method").value);
+</script>
+{% endblock %}

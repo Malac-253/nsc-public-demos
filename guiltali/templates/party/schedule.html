@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Schedule{% endblock %}
+{% block extra_css %}
+.sched-head{display:grid;grid-template-columns:92px 1fr;gap:6px;margin-bottom:4px}
+.day-strip{display:flex}
+.day-strip .d{flex:1;text-align:center;font-family:var(--px);font-size:8.5px;color:var(--muted);
+  border-left:1px dashed var(--line);padding:2px 0}
+.day-strip .d.today{color:var(--green-deep);font-weight:700}
+.sched-row{display:grid;grid-template-columns:92px 1fr;gap:6px;align-items:center;padding:7px 0;
+  border-bottom:1px solid var(--line)}
+.sched-row .who{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;min-width:0}
+.sched-row .who img{width:24px;height:24px;object-fit:contain;animation:iconPulse 2.8s ease-in-out infinite;flex:none}
+.sched-row .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-lane{position:relative;height:26px;background:repeating-linear-gradient(90deg,
+  var(--gray-soft) 0,var(--gray-soft) calc(100%/6 - 1px),var(--gray-line) calc(100%/6 - 1px),var(--gray-line) calc(100%/6))}
+.bar-lane{border-radius:7px;overflow:hidden}
+.bar{position:absolute;top:3px;bottom:3px;border-radius:6px;display:flex;align-items:center;
+  justify-content:center;font-size:9.5px;font-family:var(--px);color:#fff;
+  text-shadow:1px 1px 0 rgba(0,0,0,.35);animation:grow .8s cubic-bezier(.22,1,.36,1) both}
+@keyframes grow{from{transform:scaleX(0);transform-origin:left}}
+.detail-box{grid-column:1 / -1;background:#faf6ea;border:2px solid var(--line);border-radius:10px;
+  padding:10px 12px;margin-top:6px;font-size:13px}
+.legend{font-size:11.5px;color:var(--muted);margin:8px 0 0}
+{% endblock %}
+{% block content %}
+<div class="card wood">
+  <h2><img src="{% static 'img/icons/sun.png' %}" alt="">Who's here when
+    <span class="sub">{{ trip.start_date|date:"M j" }} – {{ trip.end_date|date:"M j" }}</span></h2>
+
+  <div class="sched-head">
+    <div></div>
+    <div class="day-strip">
+      {% for d in day_list %}<div class="d {% if d == today %}today{% endif %}">{{ d|date:"D"|upper }}<br>{{ d|date:"j" }}</div>{% endfor %}
+    </div>
+  </div>
+
+  {% for r in rows %}
+  <div class="sched-row" id="row-{{ r.member.id }}">
+    <div class="who">
+      <img src="{{ r.member.icon_url }}" alt="">
+      <span>{{ r.member.shown_name }}</span>
+    </div>
+    <div class="bar-lane" {% if r.editable or r.travel_note %}onclick="toggleDetail({{ r.member.id }})" style="cursor:pointer"{% endif %}>
+      <div class="bar" style="left:{{ r.start_pct }}%;width:{{ r.width_pct }}%;background:{{ r.member.swatch }}">
+        {{ r.nights }}N
+      </div>
+    </div>
+    <div class="detail-box" id="detail-{{ r.member.id }}" hidden>
+      <div style="font-size:12.5px;margin-bottom:6px">
+        <strong>{{ r.member.shown_name }}</strong> · {{ r.arrive|date:"D M j" }} → {{ r.depart|date:"D M j" }}
+        {% if r.note %}<span class="muted"> · {{ r.note }}</span>{% endif %}
+      </div>
+      {% if r.travel_note %}
+      <div class="muted" style="margin-bottom:8px"><strong>Travel plans:</strong> {{ r.travel_note }}</div>
+      {% endif %}
+      {% if r.editable %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="member_id" value="{{ r.member.id }}">
+        <div class="formrow">
+          <div><label>Arrive</label><input type="date" name="arrive" value="{{ r.arrive|date:'Y-m-d' }}" min="{{ trip.start_date|date:'Y-m-d' }}" max="{{ trip.end_date|date:'Y-m-d' }}"></div>
+          <div><label>Depart</label><input type="date" name="depart" value="{{ r.depart|date:'Y-m-d' }}" min="{{ trip.start_date|date:'Y-m-d' }}" max="{{ trip.end_date|date:'Y-m-d' }}"></div>
+        </div>
+        <label>Short note (shows on chart)</label>
+        <input type="text" name="note" value="{{ r.note }}" maxlength="200" placeholder="e.g. Fri → Mon">
+        <label>Travel plans</label>
+        <input type="text" name="travel_note" value="{{ r.member.travel_note }}" maxlength="300" placeholder="e.g. driving down with Grant Thursday night">
+        <button class="btn small" type="submit" style="margin-top:10px">Save</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <p class="legend">Tap a bar to see details{% if me.is_staff_role %} — as {{ me.get_role_display|lower }}, you can edit anyone's stay{% else %} — you can edit your own{% endif %}.</p>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function toggleDetail(id) {
+  const el = document.getElementById("detail-" + id);
+  el.hidden = !el.hidden;
+}
+</script>
+{% endblock %}

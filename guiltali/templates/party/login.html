@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Sign in{% endblock %}
+{% block extra_css %}
+body{background:linear-gradient(180deg,#d4e6d6 0%,#e8ece8 45%,var(--bg) 100%)}
+.login-scene{position:relative;max-width:420px;margin:0 auto;padding-top:12px}
+.login-scene .sky{position:relative;height:150px;border-radius:16px 16px 0 0;overflow:hidden;
+  background:url("{% static 'img/px-parallax-far.png' %}") center 30%/cover no-repeat;
+  image-rendering:pixelated;border:3px solid #3f2d15;border-bottom:none}
+.login-scene .tree{position:absolute;right:-26px;top:44px;width:130px;image-rendering:pixelated;
+  animation:sway 4.5s ease-in-out infinite;transform-origin:bottom center;z-index:3;
+  filter:drop-shadow(0 6px 10px rgba(30,20,5,.35))}
+@keyframes sway{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+.login-card{background:var(--card);border:3px solid #3f2d15;border-radius:0 0 16px 16px;
+  padding:22px 20px 24px;box-shadow:var(--shadow)}
+.login-card .badge{width:80px;height:80px;object-fit:contain;display:block;margin:-58px auto 6px;
+  filter:drop-shadow(0 4px 8px rgba(30,50,38,.25));animation:iconPulse 2.6s ease-in-out infinite}
+.login-card h1{font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:-.03em;
+  text-align:center;color:var(--ink)}
+.login-card .sub{text-align:center;font-size:12.5px;color:var(--muted);margin:2px 0 12px}
+.err{background:var(--red-soft);border:2px solid #e4b3a9;color:var(--red);border-radius:10px;
+  padding:9px 12px;font-size:13px;margin-bottom:10px}
+{% endblock %}
+{% block content %}
+<div class="login-scene">
+  <div class="sky"><img class="tree" src="{% static 'img/px-tree.png' %}" alt=""></div>
+  <div class="login-card">
+    <img class="badge" src="{% static 'img/px-trip-badge.png' %}" alt="">
+    <h1>Brock Trip 2026</h1>
+    <div class="sub">Fourth annual · July 16–21 · party members only</div>
+    {% if form.errors %}
+      <div class="err"><strong>Wrong name or password — ask Malachi.</strong><br>
+      <span style="font-size:12px">Heads up: passwords are case-sensitive.</span></div>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label>Name</label>
+      <input type="text" name="username" autocapitalize="none" autocomplete="username" required>
+      <label>Password</label>
+      <input type="password" name="password" autocomplete="current-password" required>
+      <button class="btn" type="submit" style="width:100%;margin-top:14px">Join the trip</button>
+    </form>
+    <p class="muted" style="text-align:center;margin-top:14px;font-size:12px">
+      Your login was sent to you by the trip admin.<br>
+      Your trip admin is <strong>Malachi</strong> — <span style="font-family:var(--px);font-size:10.5px;color:var(--brown)">"THE QUARTERMASTER"</span>
+    </p>
+  </div>
+</div>
+{% endblock %}

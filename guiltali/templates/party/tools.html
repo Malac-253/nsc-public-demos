@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Games{% endblock %}
+{% block extra_css %}
+.scorewrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.side{border:3px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center;
+  background:#fffef9;cursor:pointer;user-select:none;transition:transform .08s ease}
+.side:active{transform:scale(.97)}
+.side.a{border-color:var(--green)}
+.side.b{border-color:var(--amber)}
+.side .nm{font-weight:800;font-size:13px}
+.side .pts{font-family:var(--px);font-size:40px;line-height:1.1}
+.side.a .pts{color:var(--green-deep)}
+.side.b .pts{color:#8a6a00}
+.side .hint{font-size:10.5px;color:var(--muted)}
+.serve{font-size:11px;font-family:var(--px);color:var(--red)}
+{% endblock %}
+{% block content %}
+<a href="{% url 'info' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Information</a>
+
+<div class="card wood" style="margin-top:8px">
+  <h2><img src="{% static 'img/icons/pickleball.png' %}" alt="">Pickleball scorekeeper
+    <span class="sub">the Airbnb has a court</span></h2>
+  <div class="formrow">
+    <div><label>Team A</label><input type="text" id="name-a" value="Team A" onchange="saveState()"></div>
+    <div><label>Team B</label><input type="text" id="name-b" value="Team B" onchange="saveState()"></div>
+  </div>
+  <div class="scorewrap">
+    <div class="side a" onclick="score('a')" data-snd="snap">
+      <div class="nm" id="lbl-a">Team A</div>
+      <div class="pts" id="pts-a">0</div>
+      <div class="serve" id="serve-a">SERVING</div>
+      <div class="hint">tap to score</div>
+    </div>
+    <div class="side b" onclick="score('b')" data-snd="snap">
+      <div class="nm" id="lbl-b">Team B</div>
+      <div class="pts" id="pts-b">0</div>
+      <div class="serve" id="serve-b" style="visibility:hidden">SERVING</div>
+      <div class="hint">tap to score</div>
+    </div>
+  </div>
+  <p class="muted" id="game-msg" style="text-align:center;margin-top:10px;font-size:13px">First to 11, win by 2.</p>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <button class="btn ghost small" style="flex:1" onclick="undo()" data-snd="snap">Undo</button>
+    <button class="btn ghost small" style="flex:1" onclick="swapServe()" data-snd="snap">Swap serve</button>
+    <button class="btn danger small" style="flex:1" onclick="resetGame()" data-snd="snap">New game</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/hottub.png' %}" alt="">Hot tub &amp; pool watch</h2>
+  <p class="muted" style="font-size:13px">
+    The house has a hot tub and pool — no scorekeeping needed there, just a reminder to
+    take turns and keep an eye on the kids. Pool scorekeeping is planned below.
+  </p>
+</div>
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/compass.png' %}" alt="">More games — coming soon</h2>
+  <p class="muted" style="font-size:13px">
+    Pool scorekeeping, tournaments with player pick/drop based on who's at the house, and a
+    running leaderboard are planned. Scores currently live on this device; a shared scoreboard
+    will post results straight to the feed.
+  </p>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+let S = JSON.parse(localStorage.getItem("gt_pickle") || '{"a":0,"b":0,"serve":"a","hist":[],"na":"Team A","nb":"Team B"}');
+function draw() {
+  document.getElementById("pts-a").textContent = S.a;
+  document.getElementById("pts-b").textContent = S.b;
+  document.getElementById("name-a").value = S.na; document.getElementById("name-b").value = S.nb;
+  document.getElementById("lbl-a").textContent = S.na; document.getElementById("lbl-b").textContent = S.nb;
+  document.getElementById("serve-a").style.visibility = S.serve === "a" ? "visible" : "hidden";
+  document.getElementById("serve-b").style.visibility = S.serve === "b" ? "visible" : "hidden";
+  const m = document.getElementById("game-msg");
+  const hi = Math.max(S.a, S.b), lead = Math.abs(S.a - S.b);
+  if (hi >= 11 && lead >= 2) m.innerHTML = "<strong>" + (S.a > S.b ? S.na : S.nb) + " wins " + Math.max(S.a,S.b) + "–" + Math.min(S.a,S.b) + "!</strong>";
+  else if (hi >= 10 && lead < 2) m.textContent = "Deuce territory — win by 2.";
+  else m.textContent = "First to 11, win by 2.";
+}
+function saveState() {
+  S.na = document.getElementById("name-a").value || "Team A";
+  S.nb = document.getElementById("name-b").value || "Team B";
+  localStorage.setItem("gt_pickle", JSON.stringify(S)); draw();
+}
+function score(side) { S.hist.push({...S}); S[side]++; S.serve = side; saveState(); }
+function undo() { if (S.hist.length) { const h = S.hist.pop(); S.a = h.a; S.b = h.b; S.serve = h.serve; saveState(); } }
+function swapServe() { S.serve = S.serve === "a" ? "b" : "a"; saveState(); }
+function resetGame() { S.a = 0; S.b = 0; S.hist = []; saveState(); }
+draw();
+</script>
+{% endblock %}

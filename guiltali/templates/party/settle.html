@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Settle up{% endblock %}
+{% block extra_css %}
+.pay-dialog{border:none;border-radius:18px 18px 0 0;padding:0;max-width:640px;width:100%;
+  margin:auto auto 0;box-shadow:0 -8px 32px rgba(42,51,44,.18)}
+.pay-dialog::backdrop{background:rgba(42,51,44,.45)}
+.pay-dialog .inner{padding:18px 18px calc(18px + env(safe-area-inset-bottom))}
+.pay-dialog .grab{width:40px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 14px}
+.pay-dialog h3{font-size:17px;font-weight:800;margin-bottom:4px}
+.plan-row{cursor:pointer;transition:background .15s ease}
+.plan-row:active{background:var(--gray-soft)}
+{% endblock %}
+{% block content %}
+
+<div class="card wood" style="text-align:center">
+  <div class="muted">Your balance</div>
+  <div style="font-family:var(--display);font-size:24px;font-weight:800" class="{% if my_balance >= 0 %}money-pos{% else %}money-neg{% endif %}">
+    {% if my_balance >= 0 %}+{% endif %}${{ my_balance|floatformat:2 }}
+  </div>
+  <div class="muted" style="font-size:12px;margin-top:4px">
+    {% if my_balance > 0 %}You're owed money{% elif my_balance < 0 %}You owe the group{% else %}All squared up{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/water.png' %}" alt="">Simplified debts
+    {% if trip.simplify_debts %}<span class="pill">on</span>{% else %}<span class="pill bark">off</span>{% endif %}
+  </h2>
+  <p class="muted" style="font-size:12.5px;margin-bottom:8px">
+    <strong>What is this?</strong> When on, debts are reshuffled into the fewest possible
+    payments. When off, you see every expense-linked tab pair-by-pair — same totals, more transfers.
+  </p>
+  {% if is_admin %}
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn ghost small" name="action" value="toggle_simplify" data-snd="snap">
+      Turn {{ trip.simplify_debts|yesno:"off,on" }}
+    </button>
+  </form>
+  {% endif %}
+
+  {% if trip.simplify_debts %}
+    {% if plan_rows %}
+    <div class="divider"></div>
+    <div class="muted" style="font-size:11.5px;margin-bottom:6px">Suggested payments (simplified) — tap yours to add payment</div>
+    {% for p in plan_rows %}
+    <div class="item-row plan-row" role="button" tabindex="0"
+         data-pay-from="{{ p.from_member.id }}" data-pay-to="{{ p.to_member.id }}" data-pay-amount="{{ p.amount }}"
+         {% if p.mine %}style="background:var(--green-soft);border-radius:8px;padding-left:8px;padding-right:8px"{% endif %}>
+      <span style="font-size:13.5px">{{ p.from_member.shown_name }} pays {{ p.to_member.shown_name }}</span>
+      <span class="qty" style="font-weight:800;color:var(--ink)">${{ p.amount }}</span>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="muted" style="margin-top:10px;font-size:13px">Everyone's squared up — no payments needed.</p>
+    {% endif %}
+  {% else %}
+    {% if raw_plan_rows %}
+    <div class="divider"></div>
+    <div class="muted" style="font-size:11.5px;margin-bottom:6px">Who owes whom (from expenses) — tap yours to add payment</div>
+    {% for p in raw_plan_rows %}
+    <div class="item-row plan-row" role="button" tabindex="0"
+         data-pay-from="{{ p.from_member.id }}" data-pay-to="{{ p.to_member.id }}" data-pay-amount="{{ p.amount }}"
+         {% if p.mine %}style="background:var(--amber-soft);border-radius:8px;padding-left:8px;padding-right:8px"{% endif %}>
+      <span style="font-size:13.5px">{{ p.from_member.shown_name }} → {{ p.to_member.shown_name }}</span>
+      <span class="qty" style="font-weight:800;color:var(--ink)">${{ p.amount }}</span>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="muted" style="margin-top:10px;font-size:13px">No open tabs between members.</p>
+    {% endif %}
+  {% endif %}
+</div>
+
+{% if balance_rows %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">Everyone's balance</h2>
+  {% for row in balance_rows %}
+  <div class="item-row" {% if row.member.id == me.id %}style="background:var(--green-soft);border-radius:8px;padding-left:8px;padding-right:8px"{% endif %}>
+    <span class="avatar-px" style="width:36px;height:36px;background:{{ row.member.swatch }}18;border-color:{{ row.member.swatch }}44"><img src="{{ row.member.icon_url }}" alt="" style="width:26px;height:26px"></span>
+    <span>{{ row.member.shown_name }}</span>
+    <span class="qty {% if row.balance >= 0 %}money-pos{% else %}money-neg{% endif %}" style="font-size:13.5px">
+      {% if row.balance >= 0 %}+{% endif %}${{ row.balance|floatformat:2 }}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if settlements %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/leaf.png' %}" alt="">Recent settle-ups</h2>
+  {% for s in settlements %}
+  <div class="item-row" style="font-size:13px">
+    <span>{{ s.from_member.shown_name }} → {{ s.to_member.shown_name }}: <strong>${{ s.amount }}</strong></span>
+    <span style="margin-left:auto">
+      {% if s.status == 'confirmed' %}
+        <span class="pill">confirmed</span>
+      {% elif s.to_member.id == me.id %}
+        <form method="post" style="display:inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="confirm">
+          <input type="hidden" name="settlement_id" value="{{ s.id }}">
+          <button class="btn small" type="submit">Confirm received</button>
+        </form>
+      {% else %}
+        <span class="muted" style="font-size:11.5px">waiting…</span>
+      {% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<dialog id="payment-dialog" class="pay-dialog">
+  <div class="inner">
+    <div class="grab"></div>
+    <h3>Add payment</h3>
+    <p class="muted" style="margin-bottom:12px;font-size:12.5px">Say you paid someone — they confirm on their end. That's the only way a tab closes.</p>
+    <form method="post" enctype="multipart/form-data" id="payment-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="claim">
+      <div class="formrow">
+        <div>
+          <label>I paid…</label>
+          <select name="to_member" id="pay-to" required>
+            {% for m in members %}{% if m.id != me.id %}<option value="{{ m.id }}">{{ m.shown_name }}</option>{% endif %}{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Amount ($)</label>
+          <input type="number" name="amount" id="pay-amount" step="0.01" min="0.01" inputmode="decimal" required>
+        </div>
+      </div>
+      <label>Proof (screenshot, optional)</label>
+      <input type="file" name="proof" accept="image/*">
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn ghost" type="button" id="pay-cancel" style="flex:1">Cancel</button>
+        <button class="btn" type="submit" style="flex:2" data-snd="hoot">I paid them</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+{% endblock %}
+
+{% block fab %}
+<button type="button" class="fab settle" id="open-payment" title="Add a payment" data-snd="rustle">
+  <span class="fab-plus">+</span><span>Add payment</span>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const meId = "{{ me.id }}";
+  const dlg = document.getElementById("payment-dialog");
+  const toEl = document.getElementById("pay-to");
+  const amtEl = document.getElementById("pay-amount");
+  function openPayment(fromId, toId, amount) {
+    if (toEl) toEl.selectedIndex = 0;
+    if (amtEl) amtEl.value = "";
+    if (!fromId || String(fromId) === meId) {
+      if (toId && toEl) toEl.value = String(toId);
+      if (amount && amtEl) amtEl.value = String(amount);
+    }
+    dlg.showModal();
+    amtEl?.focus();
+  }
+  document.getElementById("open-payment")?.addEventListener("click", () => openPayment());
+  document.getElementById("pay-cancel")?.addEventListener("click", () => dlg.close());
+  dlg?.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+  document.querySelectorAll(".plan-row").forEach(row => {
+    const go = () => openPayment(row.dataset.payFrom, row.dataset.payTo, row.dataset.payAmount);
+    row.addEventListener("click", go);
+    row.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Information{% endblock %}
+{% block extra_css %}
+.info-row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);color:var(--ink)}
+.info-row:last-child{border-bottom:none}
+.info-row .ic{flex:none;width:42px;height:42px;border-radius:12px;background:var(--green-soft);
+  display:flex;align-items:center;justify-content:center}
+.info-row .ic img{width:30px;height:30px;object-fit:contain;animation:iconPulse 2.8s ease-in-out infinite}
+.info-row .d{font-size:11.5px;color:var(--muted)}
+.info-row .chev{margin-left:auto;color:var(--muted);font-size:18px}
+.info-row .copy{flex:none;border:none;background:var(--gray-soft);border-radius:8px;width:28px;height:28px;
+  font-size:12px;color:var(--muted);cursor:pointer}
+.info-card details summary{display:flex;align-items:center;gap:8px}
+.info-card details summary::after{content:"⌄";margin-left:auto;color:var(--muted);transition:transform .2s ease}
+.info-card details[open] summary::after{transform:rotate(180deg)}
+.section-tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px}
+.section-tabs a{flex:none;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;
+  background:var(--gray-soft);color:var(--ink);border:1px solid var(--line)}
+{% endblock %}
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin:2px 0 10px">
+  <h1 style="font-size:20px;font-weight:800;letter-spacing:-.02em">Information</h1>
+  <button class="btn ghost small" type="button" onclick="toggleAllDetails()" data-snd="rustle">Collapse all</button>
+</div>
+
+{% if is_staff %}
+<div class="quick" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+  <a class="btn ghost small" href="{% url 'list_new' %}" data-snd="rustle">+ New list</a>
+  <a class="btn ghost small" href="{% url 'info_new' %}?kind=note" data-snd="rustle">+ New note</a>
+</div>
+{% endif %}
+
+<div class="card info-card">
+<details open>
+<summary><img src="{% static 'img/icons/leaf.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Lists</h2></summary>
+  {% for tl in lists %}
+  <div class="info-row">
+    <a href="{% url 'list_detail' tl.id %}" data-snd="rustle" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-decoration:none;color:inherit">
+      <span class="ic"><img src="{% static 'img/icons/leaf.png' %}" alt=""></span>
+      <span style="flex:1;min-width:0">
+        <strong style="font-size:14px">{{ tl.name }}</strong>
+        <div class="d">{{ tl.done_count }}/{{ tl.items.count }} done{% if tl.note %} · {{ tl.note|truncatechars:44 }}{% endif %}</div>
+      </span>
+    </a>
+    <span class="chev">›</span>
+  </div>
+  {% empty %}<p class="muted">No lists yet.</p>{% endfor %}
+</details>
+</div>
+
+<div class="card info-card">
+<details open>
+<summary><img src="{% static 'img/icons/mushroom.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">The menu <span class="sub" style="font-weight:600;font-size:11px;color:var(--muted)">cooking instructions</span></h2></summary>
+  {% for p in recipes %}
+  <a class="info-row" href="{% url 'info_page' p.slug %}" data-snd="rustle">
+    <span class="ic" style="background:var(--amber-soft)"><img src="{% static 'img/icons/fire.png' %}" alt=""></span>
+    <span style="flex:1;min-width:0">
+      <strong style="font-size:14px">{{ p.title }}</strong>
+      <div class="d">{{ p.subtitle }}</div>
+    </span>
+    <span class="chev">›</span>
+  </a>
+  {% empty %}<p class="muted">Menu coming soon.</p>{% endfor %}
+</details>
+</div>
+
+{% if notes %}
+<div class="card info-card">
+<details open>
+<summary><img src="{% static 'img/icons/lantern.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Notes &amp; house info</h2></summary>
+  {% for p in notes %}
+  <a class="info-row" href="{% url 'info_page' p.slug %}" data-snd="rustle">
+    <span class="ic" style="background:var(--bark-soft)"><img src="{% static 'img/icons/bark.png' %}" alt=""></span>
+    <span style="flex:1;min-width:0">
+      <strong style="font-size:14px">{{ p.title }}</strong>
+      <div class="d">{{ p.subtitle }}{% if p.restricted %} · <span style="color:var(--burgundy)">limited visibility</span>{% endif %}</div>
+    </span>
+    <span class="chev">›</span>
+  </a>
+  {% endfor %}
+</details>
+</div>
+{% endif %}
+
+{% if locations %}
+<div class="card info-card">
+<details>
+<summary><img src="{% static 'img/icons/compass.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Location suggestions</h2></summary>
+  {% for p in locations %}
+  <a class="info-row" href="{% url 'info_page' p.slug %}" data-snd="rustle">
+    <span class="ic"><img src="{% static 'img/icons/pine.png' %}" alt=""></span>
+    <span style="flex:1;min-width:0"><strong style="font-size:14px">{{ p.title }}</strong><div class="d">{{ p.subtitle }}</div></span>
+    <span class="chev">›</span>
+  </a>
+  {% endfor %}
+</details>
+</div>
+{% endif %}
+
+{% if movies %}
+<div class="card info-card">
+<details>
+<summary><img src="{% static 'img/icons/star.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Movie suggestions</h2></summary>
+  {% for p in movies %}
+  <a class="info-row" href="{% url 'info_page' p.slug %}" data-snd="rustle">
+    <span class="ic"><img src="{% static 'img/icons/star.png' %}" alt=""></span>
+    <span style="flex:1;min-width:0"><strong style="font-size:14px">{{ p.title }}</strong><div class="d">{{ p.subtitle }}</div></span>
+    <span class="chev">›</span>
+  </a>
+  {% endfor %}
+</details>
+</div>
+{% endif %}
+
+<div class="card info-card">
+<details open>
+<summary><img src="{% static 'img/icons/sun.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Who's here when</h2></summary>
+  <p class="muted" style="font-size:12.5px;margin:8px 0 8px">See everyone side-by-side on the day chart, and edit your own arrival/departure.</p>
+  <a class="btn ghost small" href="{% url 'schedule' %}" data-snd="rustle">Open schedule</a>
+</details>
+</div>
+
+<div class="card info-card">
+<details open>
+<summary><img src="{% static 'img/icons/star.png' %}" class="icon-sm" alt=""><h2 style="margin:0;font-size:15px">Tools</h2></summary>
+  <a class="info-row" href="{% url 'tools' %}" data-snd="rustle">
+    <span class="ic" style="background:var(--amber-soft)"><img src="{% static 'img/icons/star.png' %}" alt=""></span>
+    <span style="flex:1">
+      <strong style="font-size:14px">Games &amp; scorekeeper</strong>
+      <div class="d">Pickleball, pool &amp; more — track points live</div>
+    </span>
+    <span class="chev">›</span>
+  </a>
+</details>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+function toggleAllDetails() {
+  const all = document.querySelectorAll(".info-card details");
+  const anyOpen = Array.from(all).some(d => d.open);
+  all.forEach(d => d.open = !anyOpen);
+  event.target.textContent = anyOpen ? "Expand all" : "Collapse all";
+}
+</script>
+{% endblock %}

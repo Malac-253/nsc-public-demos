@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Feed{% endblock %}
+{% block extra_css %}
+.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px;-webkit-overflow-scrolling:touch}
+.chips a{flex:none;font-size:12px;font-weight:700;padding:6px 13px;border-radius:10px;
+  border:2px solid var(--line);background:#fff;color:var(--ink)}
+.chips a.on{background:var(--green);border-color:var(--green-deep);color:#fff}
+.post{border:2px solid var(--line);border-radius:15px;box-shadow:var(--shadow);
+  margin-bottom:14px;overflow:hidden;background:var(--card);
+  transition:border-color .2s ease,box-shadow .2s ease}
+.post:hover,.post:focus-within{border-color:var(--green);box-shadow:0 0 0 3px rgba(47,125,79,.14),var(--shadow)}
+.post .head{display:flex;align-items:center;gap:9px;padding:11px 13px 0}
+.post .head .nm{font-weight:800;font-size:13.5px}
+.post .head .tm{font-size:11px;color:var(--muted)}
+.post .body{padding:8px 13px 12px}
+.post .kind-tag{margin-left:auto}
+.copy-title{border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px;
+  padding:2px 4px;margin-left:5px;vertical-align:middle}
+.slider{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:0;-webkit-overflow-scrolling:touch}
+.slider .sl{flex:none;width:100%;scroll-snap-align:center;position:relative}
+.slider img{width:100%;display:block;max-height:340px;object-fit:cover}
+.slider .dl{position:absolute;right:10px;bottom:10px;background:rgba(24,15,4,.65);color:#fff;
+  font-size:11px;padding:5px 10px;border-radius:8px;font-weight:700}
+.slider-dots{display:flex;justify-content:center;gap:4px;padding:6px 0 0}
+.slider-dots i{width:6px;height:6px;border-radius:50%;background:#c8b28c;transition:background .2s ease,transform .2s ease}
+.slider-dots i.on{background:var(--green);transform:scale(1.3)}
+.reactions{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.reactions button{border:1px solid var(--line);background:var(--gray-soft);border-radius:999px;
+  padding:4px 9px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:4px}
+.reactions button.mine{background:var(--green-soft);border-color:var(--green)}
+.reactions button .n{font-size:11px;font-weight:700;color:var(--muted)}
+.poll-status{font-size:11.5px;font-weight:700;margin-top:4px}
+.poll-status .ok{color:var(--green-deep)}
+.poll-status .pending{color:var(--burgundy)}
+.linkbtn{display:block;margin-top:8px;text-align:center;background:var(--green-soft);
+  border:2px solid #bcd9bd;color:var(--green-deep);font-weight:700;font-size:13.5px;
+  border-radius:10px;padding:9px}
+.comments{border-top:2px solid var(--line);background:#faf7ee;padding:10px 13px}
+.cmt{margin-bottom:9px}
+.cmt .cn{display:flex;align-items:center;gap:6px;font-weight:800;font-size:12px}
+.cmt .cn img{width:22px;height:22px;object-fit:contain;animation:iconPulse 2.8s ease-in-out infinite}
+.cmt .cn .ct{font-weight:500;color:var(--muted);font-size:10.5px}
+.cmt .cb{font-size:13px;margin-left:22px}
+.cmt-form{display:flex;gap:7px;margin-top:4px}
+.cmt-form input{flex:1;padding:8px 11px;font-size:13px}
+.pollbox{border:2px dashed var(--amber);border-radius:11px;padding:10px 12px;margin-top:8px;background:var(--amber-soft)}
+{% endblock %}
+{% block content %}
+
+{% if filtered_member %}
+<div class="card" style="display:flex;align-items:center;gap:10px;padding:11px 14px">
+  <span class="avatar-px" style="background:{{ filtered_member.swatch }}22"><img src="{{ filtered_member.icon_url }}" alt=""></span>
+  <span style="flex:1;font-size:13.5px">Showing <strong>{{ filtered_member.shown_name }}</strong>'s posts</span>
+  <a class="btn ghost small" href="{% url 'feed' %}" data-snd="snap">Clear</a>
+</div>
+{% endif %}
+
+<div class="chips">
+  <a href="{% url 'feed' %}" class="{% if not active_kind %}on{% endif %}" data-snd="rustle">All</a>
+  <a href="{% url 'feed' %}?kind=photo" class="{% if active_kind == 'photo' %}on{% endif %}" data-snd="rustle">Photos</a>
+  <a href="{% url 'feed' %}?kind=suggestion" class="{% if active_kind == 'suggestion' %}on{% endif %}" data-snd="rustle">Suggestions</a>
+  <a href="{% url 'feed' %}?kind=poll" class="{% if active_kind == 'poll' %}on{% endif %}" data-snd="rustle">Polls</a>
+  <a href="{% url 'photos' %}" data-snd="rustle">Photo wall</a>
+</div>
+
+{% for p in posts %}
+<article class="post" {% if p.bg_color %}style="background:{{ p.bg_color }}"{% endif %}>
+  <div class="head">
+    <a class="avatar-px" style="background:{{ p.author.swatch }}18;border-color:{{ p.author.swatch }}44" href="{% url 'feed' %}?member={{ p.author.id }}">
+      <img src="{{ p.author.icon_url }}" alt="">
+    </a>
+    <div>
+      <div class="nm">{{ p.author.shown_name }}{% if p.author.alias %} <span class="muted" style="font-weight:600;font-size:11px">· {{ p.author.alias }}</span>{% endif %}</div>
+      <div class="tm">{{ p.created_at|timesince }} ago</div>
+    </div>
+    <span class="pill kind-tag {% if p.kind == 'suggestion' %}amber{% elif p.kind == 'photo' %}bark{% elif p.kind == 'poll' %}red{% endif %}">{{ p.get_kind_display }}</span>
+  </div>
+
+  <div class="body">
+    {% if p.suggested_by_note %}<div class="muted" style="font-size:11.5px;margin-bottom:3px">{{ p.suggested_by_note }}</div>{% endif %}
+    {% if p.title %}<div style="font-weight:800;font-size:15px;margin-bottom:3px">{{ p.title }}<button class="copy-title" type="button" data-copy="{{ p.title }}" onclick="copyTitle(this)" title="Copy title" data-snd="rustle">⎘</button></div>{% endif %}
+    {% if p.text %}<p style="font-size:14px">{{ p.text|linebreaksbr }}</p>{% endif %}
+
+    {% if p.poll %}
+    <div class="pollbox">
+      <div style="font-size:12px;font-weight:700;color:#8a6a00">
+        {% if p.poll.stage == 'suggest' %}Collecting suggestions — add yours!
+        {% elif p.poll.stage == 'vote' %}Voting open — {{ p.poll.total_votes }} vote{{ p.poll.total_votes|pluralize }}
+        {% else %}Poll closed{% endif %}
+      </div>
+      <div class="poll-status">
+        {% if p.poll_i_voted %}<span class="ok">✓ You've voted</span>{% elif p.poll.stage == 'vote' %}<span class="pending">You haven't voted yet</span>{% endif %}
+        {% if p.poll_total_members %} · {{ p.poll_voted_count }}/{{ p.poll_total_members }} of the party has weighed in{% endif %}
+      </div>
+      <a class="btn small brown" href="{% url 'poll_detail' p.poll.id %}" style="margin-top:7px" data-snd="rustle">Open poll to vote</a>
+    </div>
+    {% endif %}
+
+    {% if p.link_url %}<a class="linkbtn" href="{{ p.link_url }}" target="_blank" rel="noopener" data-snd="rustle">{{ p.link_label }}</a>{% endif %}
+    {% if p.internal_path %}<a class="linkbtn" href="{{ p.internal_path }}" data-snd="rustle">{{ p.link_label|default:"Open" }}</a>{% endif %}
+
+    <div class="reactions">
+      {% for emoji, label in reaction_choices %}
+      <form method="post" action="{% url 'react' %}" style="display:contents">
+        {% csrf_token %}
+        <input type="hidden" name="post_id" value="{{ p.id }}">
+        <input type="hidden" name="emoji" value="{{ emoji }}">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="{% if emoji in p.my_reaction_set %}mine{% endif %}" title="{{ label }}" data-snd="snap">
+          {{ emoji }}
+        </button>
+      </form>
+      {% endfor %}
+      {% for r in p.reaction_summary %}<span class="pill" style="font-size:11px">{{ r.emoji }} {{ r.count }}</span>{% endfor %}
+    </div>
+  </div>
+
+  {% with imgs=p.all_images %}
+  {% if imgs %}
+  <div class="slider" data-slider>
+    {% for img in imgs %}
+    <div class="sl">
+      <img src="{{ img.url }}" loading="lazy" alt="">
+      <a class="dl" href="{{ img.url }}" download data-snd="snap">Download</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% if imgs|length > 1 %}<div class="slider-dots" data-dots>{% for img in imgs %}<i class="{% if forloop.first %}on{% endif %}"></i>{% endfor %}</div>{% endif %}
+  {% endif %}
+  {% endwith %}
+
+  <div class="comments">
+    {% for c in p.comments.all %}
+    <div class="cmt">
+      <div class="cn"><img src="{{ c.author.icon_url }}" alt="">{{ c.author.shown_name }} <span class="ct">{{ c.created_at|timesince }} ago</span></div>
+      <div class="cb">{{ c.text }}</div>
+    </div>
+    {% endfor %}
+    <form class="cmt-form" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="comment">
+      <input type="hidden" name="post_id" value="{{ p.id }}">
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <input type="text" name="text" placeholder="Add a comment…" maxlength="500" required>
+      <button class="btn small brown" type="submit">Post</button>
+    </form>
+  </div>
+</article>
+{% empty %}
+<div class="card"><p class="muted">Nothing here yet — be the first to post.</p></div>
+{% endfor %}
+
+{% if me.is_staff_role %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">Post an announcement <span class="sub">admins &amp; mods</span></h2>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="announce">
+    <input type="text" name="text" maxlength="300" placeholder="e.g. Check the grocery list before Friday" required>
+    <div class="formrow" style="margin-top:8px">
+      <select name="audience">
+        <option value="">Everyone</option>
+        {% for m in members %}<option value="{{ m.id }}">Just {{ m.shown_name }}</option>{% endfor %}
+      </select>
+      <label class="tag-check" style="margin:0;display:flex;align-items:center;justify-content:center;text-transform:none;letter-spacing:0;border:2px solid var(--line);border-radius:9px">
+        <input type="checkbox" name="pinned" style="width:auto"> Pin it
+      </label>
+    </div>
+    <button class="btn small" type="submit" style="margin-top:10px">Announce</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block fab %}
+<a class="fab" href="{% url 'feed_new' %}" title="New post" data-snd="rustle">+</a>
+{% endblock %}
+{% block extra_js %}
+<script>
+function copyTitle(btn) {
+  navigator.clipboard?.writeText(btn.dataset.copy);
+  const old = btn.textContent; btn.textContent = "✓"; setTimeout(() => btn.textContent = old, 1000);
+}
+document.querySelectorAll("[data-slider]").forEach(slider => {
+  const dots = slider.parentElement.querySelector("[data-dots]");
+  if (!dots) return;
+  const dotEls = Array.from(dots.children);
+  slider.addEventListener("scroll", () => {
+    const idx = Math.round(slider.scrollLeft / slider.clientWidth);
+    dotEls.forEach((d, i) => d.classList.toggle("on", i === idx));
+  }, { passive: true });
+});
+</script>
+{% endblock %}

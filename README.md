@@ -21,6 +21,7 @@ Then visit `http://localhost:3000` (or whatever port `serve` prints).
 | Demo | Description | Path |
 |------|-------------|------|
 | **Crawl Trails** | A transit-style route view for a night-out crawl — venues, lines, transfers, and live “cars” along the way. | [`crawltrails/malachi_dance_crawl.html`](crawltrails/malachi_dance_crawl.html) |
+| **Guiltali — Brock Trip 2026** | A deployable multi-page group-trip app (Django): logins, expenses + split algorithms, rooms, grocery tasks, polls, board. See its README for local run + Render deploy. | [`guiltali/`](guiltali/README.md) |
 
 ## Adding a demo
 

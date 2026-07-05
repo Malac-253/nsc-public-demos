@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Confirm expense{% endblock %}
+{% block content %}
+<div class="card wood">
+  <h2><img src="{% static 'img/icons/acorn.png' %}" alt="">Does this look right?</h2>
+  <div style="text-align:center;padding:8px 0 4px">
+    <div style="font-weight:800;font-size:17px">{{ pending.title }}</div>
+    <div class="balance-hero" style="font-family:var(--px);font-size:26px;color:var(--green-deep)">${{ pending.amount }}</div>
+    <div class="muted" style="font-size:12.5px">Paid by {{ payer.shown_name }}</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:6px">
+      {% if pending.is_pre_trip %}<span class="pill bark">pre-trip</span>{% endif %}
+      {% for t in tag_labels %}<span class="pill amber">{{ t }}</span>{% endfor %}
+    </div>
+  </div>
+  <div class="divider"></div>
+  <p class="muted" style="font-size:12.5px;margin-bottom:8px"><em>{{ note }}</em></p>
+  {% if excluded %}
+  <p class="muted" style="font-size:12px;margin-bottom:8px">Not splitting with: {% for m in excluded %}{{ m.shown_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+  {% endif %}
+  {% for r in share_rows %}
+  <div class="item-row">
+    <span class="avatar-px" style="width:28px;height:28px;background:{{ r.member.swatch }}22"><img src="{{ r.member.icon_url }}" style="width:18px;height:18px" alt=""></span>
+    <span>{{ r.member.shown_name }}</span>
+    <span class="qty" style="font-size:13.5px;font-weight:700;color:var(--ink)">${{ r.amount }}</span>
+  </div>
+  {% endfor %}
+  <form method="post" style="margin-top:14px">
+    {% csrf_token %}
+    <button class="btn" name="action" value="confirm" style="width:100%">Looks good — add it</button>
+    <button class="btn ghost" name="action" value="cancel" style="width:100%;margin-top:8px" data-snd="snap">Go back &amp; edit</button>
+  </form>
+</div>
+{% endblock %}

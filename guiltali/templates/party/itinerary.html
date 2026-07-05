@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Timeline{% endblock %}
+{% block extra_css %}
+.trailhead{position:relative;border-radius:14px;overflow:hidden;height:120px;margin-bottom:14px;
+  background:url("{% static 'img/px-parallax-far.png' %}") center 60%/cover no-repeat;
+  border:1px solid var(--gray-line);box-shadow:var(--shadow)}
+.trailhead::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(47,125,79,.08),rgba(42,51,44,.65))}
+.trailhead .cap{position:absolute;left:14px;right:14px;bottom:10px;color:#f4faf5;z-index:1}
+.trailhead .cap .ttl{font-family:var(--display);font-size:15px;font-weight:800;letter-spacing:-.02em}
+.trailhead .cap .sub{font-size:11.5px;opacity:.9}
+
+.trail{position:relative;padding-left:36px;margin-top:4px}
+.trail::before{content:"";position:absolute;left:15px;top:6px;bottom:6px;width:4px;border-radius:3px;
+  background:repeating-linear-gradient(180deg,var(--bark) 0 8px,transparent 8px 16px)}
+.trail-day{position:relative;margin-bottom:18px}
+.trail-day:last-child{margin-bottom:0}
+.trail-day .marker{position:absolute;left:-36px;top:0;width:32px;height:32px;border-radius:9px;
+  background:var(--card);border:3px solid var(--bark);display:flex;align-items:center;justify-content:center;
+  font-family:var(--px);font-size:11px;color:var(--brown-deep);z-index:1}
+.trail-day.today .marker{background:var(--green);color:#fff;border-color:var(--green-deep);
+  box-shadow:0 0 0 4px var(--green-soft)}
+.trail-day .daycard{background:var(--card);border:2px solid var(--line);border-radius:13px;
+  padding:12px 14px;box-shadow:var(--shadow)}
+.trail-day.today .daycard{border-color:var(--green);background:#f4faf1}
+.trail-day .daytitle{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.trail-day .daytitle .dname{font-weight:800;font-size:14px}
+.trail-day .daytitle .ddate{font-size:11.5px;color:var(--muted)}
+.flow-note{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:3px 0}
+.flow-note img{width:22px;height:22px;object-fit:contain;animation:iconPulse 2.8s ease-in-out infinite}
+.act-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-top:1px dashed var(--line)}
+.act-row:first-child{border-top:none}
+.act-row .act-ico{flex:none;width:36px;height:36px;border-radius:10px;background:var(--green-soft);
+  display:flex;align-items:center;justify-content:center}
+.act-row .act-ico img{width:26px;height:26px;object-fit:contain;animation:iconPulse 2.8s ease-in-out infinite}
+.act-row .act-time{font-size:10px;font-family:var(--display);font-weight:700;color:var(--muted)}
+.act-row .act-title{font-size:13.5px;font-weight:700;line-height:1.35}
+.act-row .act-desc{font-size:12.5px;color:var(--muted);margin-top:1px}
+.act-badge{display:inline-block;margin-top:3px;font-size:10px;font-family:var(--px);
+  background:var(--amber-soft);color:#8a6a00;padding:2px 8px;border-radius:7px}
+{% endblock %}
+{% block content %}
+<div class="trailhead">
+  <div class="cap">
+    <div class="ttl">TRIP TIMELINE</div>
+    <div class="sub">{{ trip.start_date|date:"M j" }} – {{ trip.end_date|date:"M j" }} · {{ days|length }} days on the trail</div>
+  </div>
+</div>
+
+<div class="trail">
+  {% for d in days %}
+  <div class="trail-day {% if d.date == today %}today{% endif %}">
+    <div class="marker">{{ d.day_num }}</div>
+    <div class="daycard">
+      <div class="daytitle">
+        <span class="dname">{{ d.date|date:"l" }}</span>
+        <span class="ddate">{{ d.date|date:"M j" }}</span>
+        {% if d.date == today %}<span class="pill" style="margin-left:auto">Today</span>{% endif %}
+      </div>
+
+      {% if d.arriving %}
+        <div class="flow-note"><img src="{% static 'img/icons/compass.png' %}" alt=""><strong>Arriving:</strong>&nbsp;{% for m in d.arriving %}{{ m.shown_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+      {% endif %}
+      {% if d.departing %}
+        <div class="flow-note"><img src="{% static 'img/icons/bark.png' %}" alt=""><strong>Leaving:</strong>&nbsp;{% for m in d.departing %}{{ m.shown_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+      {% endif %}
+
+      {% for act in d.activities %}
+      <div class="act-row">
+        <div class="act-ico">
+          {% if act.kind == 'hike' %}<img src="{% static 'img/icons/mountain.png' %}" alt="">
+          {% elif act.kind == 'meal' %}<img src="{% static 'img/icons/mushroom.png' %}" alt="">
+          {% elif act.kind == 'water' %}<img src="{% static 'img/icons/water.png' %}" alt="">
+          {% elif act.kind == 'social' %}<img src="{% static 'img/icons/fire.png' %}" alt="">
+          {% elif act.kind == 'travel' %}<img src="{% static 'img/icons/compass.png' %}" alt="">
+          {% elif act.kind == 'chore' %}<img src="{% static 'img/icons/bark.png' %}" alt="">
+          {% else %}<img src="{% static 'img/icons/sun.png' %}" alt="">{% endif %}
+        </div>
+        <div style="flex:1;min-width:0">
+          {% if act.time %}<div class="act-time">{{ act.time|time:"g:i A"|upper }}</div>{% endif %}
+          <div class="act-title">{{ act.title }}</div>
+          {% if act.description %}<div class="act-desc">{{ act.description }}</div>{% endif %}
+          {% if act.distance_note %}<span class="act-badge">{{ act.distance_note }}</span>{% endif %}
+        </div>
+      </div>
+      {% empty %}
+      {% if not d.arriving and not d.departing %}
+        <div class="muted" style="font-size:13px;padding-top:2px">Full house — trails, cooking &amp; hangs</div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/sun.png' %}" alt="">Who's here when</h2>
+  <p class="muted">Partial stays factor into the "split by nights present" expense algorithm automatically.
+  See the full <a href="{% url 'schedule' %}">schedule chart</a>.</p>
+</div>
+{% endblock %}

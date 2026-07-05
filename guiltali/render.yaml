@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: guiltali-brock-trip
+    runtime: python
+    plan: free
+    rootDir: guiltali
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn guiltali.wsgi:application"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "0"
+      - key: WEB_CONCURRENCY
+        value: "2"
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      # Free tier has an ephemeral disk. SQLite lives at /tmp between deploys
+      # unless you attach a disk or a free Postgres:
+      # - key: DATABASE_URL
+      #   fromDatabase: { name: guiltali-db, property: connectionString }

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Home{% endblock %}
+{% block extra_css %}
+.hero-scene{position:relative;height:230px;border-radius:16px;overflow:hidden;margin-bottom:14px;
+  border:1px solid rgba(0,0,0,.08);box-shadow:var(--shadow)}
+.hero-scene .layer{position:absolute;inset:0;background-position:center 42%;background-size:cover;
+  background-repeat:no-repeat;image-rendering:pixelated;will-change:transform}
+.hero-scene .lay-far{background-image:url("{% static 'img/px-parallax-far.png' %}")}
+.hero-scene .tree-l{position:absolute;left:-40px;bottom:-16px;width:150px;image-rendering:pixelated;
+  animation:sway 5s ease-in-out infinite;transform-origin:bottom center;z-index:3;
+  filter:drop-shadow(3px 5px 8px rgba(20,12,2,.4))}
+@keyframes sway{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+.hero-scene .cap{position:absolute;left:0;right:0;bottom:0;z-index:4;padding:14px 16px 12px;
+  background:linear-gradient(180deg,transparent,rgba(24,15,4,.82))}
+.hero-title{font-family:var(--display);font-size:26px;font-weight:800;letter-spacing:-.03em;
+  color:#fff;line-height:1.08;animation:titleIn 1s cubic-bezier(.22,1.4,.4,1) both}
+@keyframes titleIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.hero-title .yr{color:#b8e6c4;font-weight:700}
+.hero-sub{color:rgba(255,255,255,.88);font-size:13px;margin-top:4px;font-weight:500}
+.hero-dates{display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--amber);background:rgba(0,0,0,.32);padding:5px 12px;border-radius:999px;
+  animation:datePulse 2.2s ease-in-out infinite}
+a.hero-link{display:block;text-decoration:none;color:inherit}
+.hero-title{transition:opacity .15s ease}
+a.hero-link:active .hero-title{opacity:.75}
+.party-row{display:flex;align-items:center;gap:11px;padding:9px 2px;border-bottom:1px solid var(--line);color:var(--ink)}
+.party-row:last-child{border-bottom:none}
+.party-row .nm{font-weight:700;font-size:14.5px}
+.party-row .meta{font-size:11.5px;color:var(--muted)}
+.progressbar{height:10px;background:rgba(0,0,0,.35);border-radius:8px;margin-top:9px;overflow:hidden;
+  border:2px solid rgba(255,233,168,.3)}
+.progressbar .fill{height:100%;background:linear-gradient(90deg,#8fd0a0,#ffe9a8);animation:fillIn 1.4s ease both}
+@keyframes fillIn{from{width:0}}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.quick .btn{justify-content:flex-start}
+.menu-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);color:var(--ink)}
+.menu-row:last-child{border-bottom:none}
+.menu-row img{width:28px;height:28px;object-fit:contain;animation:iconPulse 2.8s ease-in-out infinite}
+.menu-row .d{font-size:11px;color:var(--muted)}
+{% endblock %}
+{% block content %}
+
+<div class="hero-scene">
+  <div class="layer lay-far" data-parallax="0.25"></div>
+  <img class="tree-l" src="{% static 'img/px-tree.png' %}" alt="" data-parallax="0.1">
+  <a class="cap hero-link" href="{% url 'experience' %}" data-snd="rustle">
+    <div class="hero-title">Brock Trip <span class="yr">2026</span></div>
+    <div class="hero-sub">{{ trip.tagline }}</div>
+    <div class="hero-dates">{{ trip.start_date|date:"D" }}–{{ trip.end_date|date:"D" }} · {{ trip.start_date|date:"M j" }}–{{ trip.end_date|date:"M j, Y" }}</div>
+    {% if trip_progress is not None %}
+      <div class="progressbar"><div class="fill" style="width:{{ trip_progress }}%"></div></div>
+    {% endif %}
+  </a>
+</div>
+
+<div class="card wood">
+  <h2><img src="{% static 'img/icons/compass.png' %}" alt="">Quick trails <span class="sub">one tap away</span></h2>
+  <div class="quick">
+    <a class="btn ghost" href="{% url 'stay' %}" data-snd="rustle"><img src="{% static 'img/icons/tent.png' %}" alt="">The stay</a>
+    <a class="btn ghost" href="{% url 'itinerary' %}" data-snd="rustle"><img src="{% static 'img/icons/pine.png' %}" alt="">Timeline</a>
+    <a class="btn ghost" href="{% url 'schedule' %}" data-snd="rustle"><img src="{% static 'img/icons/sun.png' %}" alt="">Schedule</a>
+    <a class="btn ghost" href="{% url 'budget' %}" data-snd="rustle"><img src="{% static 'img/icons/acorn.png' %}" alt="">Budget</a>
+    <a class="btn ghost" href="{% url 'info' %}" data-snd="rustle"><img src="{% static 'img/icons/lantern.png' %}" alt="">Information</a>
+    <a class="btn ghost" href="{% url 'photos' %}" data-snd="rustle"><img src="{% static 'img/icons/star.png' %}" alt="">Photos</a>
+  </div>
+</div>
+
+{% if menu_pages %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/fire.png' %}" alt="">The menu <span class="sub">what we're cooking</span></h2>
+  {% for p in menu_pages %}
+  <a class="menu-row" href="{% url 'info_page' p.slug %}" data-snd="rustle">
+    <img src="{% static 'img/icons/mushroom.png' %}" alt="">
+    <span style="flex:1">
+      <strong style="font-size:14px">{{ p.title }}</strong>
+      <div class="d">{{ p.subtitle }}</div>
+    </span>
+    <span class="muted" style="font-size:18px">›</span>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/compass.png' %}" alt="">The party <span class="sub">{{ members|length }} hikers</span></h2>
+  {% for m in members %}
+  <a class="party-row" href="{% url 'feed' %}?member={{ m.id }}" data-snd="rustle">
+    <span class="avatar-px" style="border-color:{{ m.swatch }}44;background:{{ m.swatch }}18">
+      <img src="{{ m.icon_url }}" alt="">
+    </span>
+    <span style="flex:1;min-width:0">
+      <span class="nm">{{ m.shown_name }}</span>
+      {% if m.plus_one_of %}<span class="meta"> · +1 of {{ m.plus_one_of.shown_name }}</span>{% endif %}
+      {% if m.role != 'member' %}<span class="pill" style="margin-left:4px;font-size:10px">{{ m.get_role_display|lower }}</span>{% endif %}
+      {% if m.real_name_sub %}<div class="meta" style="font-size:10px">{{ m.real_name_sub }}</div>{% endif %}
+    </span>
+    <span class="muted" style="font-size:17px">›</span>
+  </a>
+  {% endfor %}
+  <a href="{% url 'party' %}" class="muted" style="display:block;margin-top:10px;font-size:12.5px">Full party list &amp; stay dates →</a>
+</div>
+
+{% if recent_posts %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/fire.png' %}" alt="">Latest from the feed</h2>
+  {% for p in recent_posts %}
+    <div style="padding:8px 0;border-bottom:1px solid var(--line)">
+      <span class="pill {% if p.kind == 'suggestion' %}amber{% elif p.kind == 'photo' %}bark{% endif %}">{{ p.get_kind_display }}</span>
+      <span style="font-size:13.5px">{{ p.title|default:p.text|truncatechars:80 }}</span>
+      <div class="muted" style="font-size:11.5px">{{ p.author.shown_name }} · {{ p.created_at|timesince }} ago</div>
+    </div>
+  {% endfor %}
+  <a href="{% url 'feed' %}" class="muted" style="display:block;margin-top:8px;font-size:12.5px">Open the trip feed →</a>
+</div>
+{% endif %}
+
+{% if me.dietary_notes %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/leaf.png' %}" alt="">Your dietary notes</h2>
+  <p class="muted">{{ me.dietary_notes }}</p>
+</div>
+{% endif %}
+
+{% endblock %}

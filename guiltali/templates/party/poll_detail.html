@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Poll{% endblock %}
+{% block extra_css %}
+.opt{position:relative;border:none;border-radius:13px;padding:13px 14px;margin-bottom:9px;width:100%;
+  text-align:left;cursor:pointer;overflow:hidden;font-family:inherit;color:#fff;font-weight:800;
+  font-size:14.5px;text-shadow:1px 1px 0 rgba(0,0,0,.25);transition:transform .1s ease}
+.opt:active{transform:scale(.985)}
+.opt .fillbar{position:absolute;left:0;top:0;bottom:0;opacity:.3;background:#000;
+  animation:growp .8s ease both}
+@keyframes growp{from{width:0}}
+.opt .row{position:relative;display:flex;align-items:center;gap:8px}
+.opt .pct{margin-left:auto;font-family:var(--px);font-size:13px}
+.opt.disabled{opacity:.55;cursor:not-allowed}
+.opt .sub{position:relative;font-size:11px;font-weight:600;opacity:.9;display:block}
+.voters{position:relative;display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.voters img{width:16px;height:16px;image-rendering:pixelated;background:rgba(255,255,255,.4);
+  border-radius:5px;padding:1.5px}
+.stagebar{display:flex;align-items:center;gap:8px;background:var(--amber-soft);
+  border:2px solid #dfc98a;border-radius:11px;padding:9px 12px;font-size:12.5px;color:#6d5200;margin-bottom:12px}
+{% endblock %}
+{% block content %}
+<a href="{% url 'feed' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Feed</a>
+
+<div class="card wood" style="margin-top:8px">
+  <h2 style="font-size:17px">{{ poll.question }}</h2>
+  <p class="muted" style="font-size:12px;margin:-4px 0 10px">
+    by {{ poll.author.shown_name }} · {{ total }} vote{{ total|pluralize }}
+    {% if poll.multiple_choice %} · multiple picks allowed{% endif %}
+    {% if poll.anonymous %} · anonymous{% endif %}
+    {% if poll.closes_at %} · closes {{ poll.closes_at|date:"D M j, g:i A" }}{% endif %}
+  </p>
+  {% if not poll.anonymous and members_voted is not None %}
+  <p style="font-size:12px;font-weight:700;margin:-2px 0 10px;color:var(--green-deep)">
+    {{ members_voted }}/{{ members_total }} of the party has voted
+    {% if not_voted %} — waiting on {% for m in not_voted %}{{ m.shown_name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}
+  </p>
+  {% endif %}
+
+  {% if poll.two_stage %}
+  <div class="stagebar">
+    <img src="{% static 'img/icons/star.png' %}" style="width:18px;height:18px;image-rendering:pixelated" alt="">
+    {% if poll.stage == 'suggest' %}<span><strong>Step 1 of 2:</strong> everyone suggests options. Voting opens once suggestions are in.</span>
+    {% elif poll.stage == 'vote' %}<span><strong>Step 2 of 2:</strong> vote for your favorite — you can't vote for your own suggestion.</span>
+    {% else %}<span>This poll is closed.</span>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if poll.stage == 'suggest' %}
+    {% for o in options %}
+    <div class="opt" style="background:{{ o.color }};cursor:default">
+      <div class="row"><span>{{ o.opt.text }}</span></div>
+      {% if o.opt.suggested_by %}<span class="sub">suggested by {{ o.opt.suggested_by.shown_name }}</span>{% endif %}
+    </div>
+    {% endfor %}
+    <form method="post" style="margin-top:8px">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="suggest">
+      <label>Add your suggestion</label>
+      <div class="formrow">
+        <input type="text" name="text" maxlength="200" placeholder="e.g. Campfire chili night" required>
+        <button class="btn" type="submit" style="flex:0 0 auto">Suggest</button>
+      </div>
+    </form>
+  {% else %}
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="vote">
+      {% for o in options %}
+      <button class="opt {% if o.own_suggestion or poll.stage == 'closed' %}disabled{% endif %}"
+        name="option_id" value="{{ o.opt.id }}"
+        {% if o.own_suggestion or poll.stage == 'closed' %}disabled{% endif %}
+        style="background:{{ o.color }}">
+        <span class="fillbar" style="width:{{ o.pct }}%"></span>
+        <span class="row">
+          <span>{{ o.opt.text }}{% if o.mine %} ✓{% endif %}</span>
+          <span class="pct">{{ o.pct }}%</span>
+        </span>
+        {% if o.opt.suggested_by and poll.two_stage %}<span class="sub">suggested by {{ o.opt.suggested_by.shown_name }}{% if o.own_suggestion %} — that's you!{% endif %}</span>{% endif %}
+        {% if o.voters %}
+        <span class="voters">{% for v in o.voters %}<img src="{{ v.icon_url }}" title="{{ v.shown_name }}" alt="">{% endfor %}</span>
+        {% endif %}
+      </button>
+      {% endfor %}
+    </form>
+  {% endif %}
+
+  {% if can_advance and poll.stage != 'closed' %}
+  <form method="post" style="margin-top:10px">
+    {% csrf_token %}
+    <button class="btn brown small" name="action" value="advance" data-snd="snap">
+      {% if poll.stage == 'suggest' %}Open voting{% else %}Close the poll{% endif %}
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

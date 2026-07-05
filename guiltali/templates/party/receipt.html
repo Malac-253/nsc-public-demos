@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Receipt{% endblock %}
+{% block extra_css %}
+.receipt{background:#fffef7;border:2px solid var(--line);border-radius:4px;
+  box-shadow:var(--shadow);padding:20px 18px;font-variant-numeric:tabular-nums;
+  position:relative;margin-bottom:16px}
+.receipt::before,.receipt::after{content:"";position:absolute;left:0;right:0;height:8px;
+  background:radial-gradient(circle at 6px -2px,transparent 6px,#fffef7 6.5px) repeat-x;background-size:14px 8px}
+.receipt::before{top:-8px;transform:rotate(180deg)}
+.receipt::after{bottom:-8px}
+.receipt h1{font-family:var(--px);font-size:13px;text-align:center;color:var(--brown-deep)}
+.receipt .meta{text-align:center;font-size:11px;color:var(--muted);margin-bottom:12px}
+.rrow{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:12.5px}
+.rrow.yours{background:#e8f0fe;border-radius:6px;padding:7px 8px;margin:3px -4px;border-bottom:none}
+.rrow.yours .t,.rrow.yours .a{color:#1a56db;font-weight:800}
+.rrow.yours .t .tags{color:#3b6fc9;font-weight:600}
+.rrow .t{flex:1;min-width:0}
+.rrow .t .tags{font-size:10px;color:var(--muted)}
+.rrow .t .you-tag{font-size:10px;font-weight:800;color:#1a56db;text-transform:uppercase;letter-spacing:.3px}
+.rrow .a{white-space:nowrap;font-weight:700}
+.rtotal{display:flex;justify-content:space-between;padding-top:10px;font-family:var(--px);font-size:13px}
+{% endblock %}
+{% block content %}
+
+<div class="receipt">
+  <h1>{% if scope == 'group' %}BROCK TRIP — GROUP RECEIPT{% else %}{{ target.shown_name|upper }} — PERSONAL RECEIPT{% endif %}</h1>
+  <div class="meta">{{ trip.start_date|date:"M j" }}–{{ trip.end_date|date:"j, Y" }} · {{ rows|length }} item{{ rows|length|pluralize }}</div>
+  {% for r in rows %}
+  <div class="rrow{% if r.is_yours %} yours{% endif %}">
+    <span class="t">
+      {{ r.exp.title }}
+      <div class="tags">
+        {% if scope == 'group' and r.exp.payer_id == me.id %}<span class="you-tag">You paid</span> · {% endif %}
+        {{ r.exp.payer.shown_name }}{% if r.exp.incurred_on %} · {{ r.exp.incurred_on|date:"M j" }}{% endif %}
+        {% if scope == 'group' and r.my_share and r.exp.payer_id != me.id %} · your share ${{ r.my_share }}{% endif %}
+        {% for t in r.tag_labels %} · {{ t }}{% endfor %}
+      </div>
+    </span>
+    <span class="a">${{ r.amount }}</span>
+  </div>
+  {% empty %}
+  <p class="muted" style="text-align:center">Nothing here yet.</p>
+  {% endfor %}
+  <div class="rtotal"><span>TOTAL</span><span>${{ total }}</span></div>
+</div>
+
+{% if receipt_members %}
+<div class="card">
+  <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">Individual receipts <span class="sub">admin only</span></h2>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    {% for m in receipt_members %}
+    <a class="btn ghost small" href="{% url 'receipt_member' m.id %}" data-snd="rustle">{{ m.shown_name }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<a class="btn ghost" href="{% url 'budget' %}" style="width:100%" data-snd="rustle">Back to budget</a>
+{% endblock %}

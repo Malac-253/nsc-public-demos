@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Settings{% endblock %}
+{% block extra_css %}
+.icon-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.icon-grid label{margin:0;display:block;cursor:pointer;text-transform:none}
+.icon-grid input{display:none}
+.icon-grid .cell{display:flex;flex-direction:column;align-items:center;gap:3px;border:2px solid var(--line);
+  border-radius:12px;padding:9px 4px;background:#fff;transition:all .12s ease;font-size:9.5px;color:var(--muted)}
+.icon-grid .cell img{width:36px;height:36px;object-fit:contain;animation:iconPulse 2.8s ease-in-out infinite}
+.icon-grid input:checked + .cell{border-color:var(--green);background:var(--green-soft);transform:scale(1.05)}
+.icon-grid .cell.taken{opacity:.45}
+.color-grid{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px}
+.color-grid label{margin:0;width:36px;height:36px;border-radius:11px;cursor:pointer;display:block}
+.color-grid input{display:none}
+.color-grid span{display:block;width:100%;height:100%;border-radius:11px;border:3px solid transparent}
+.color-grid input:checked + span{border-color:var(--ink);transform:scale(1.08)}
+{% endblock %}
+{% block content %}
+
+{% if needs_icon %}
+<div class="card wood" style="border-color:var(--green)">
+  <h2><img src="{% static 'img/icons/star.png' %}" alt="">Welcome, {{ me.shown_name }}!</h2>
+  <p class="muted" style="font-size:13px">Pick your trail icon and color before heading in — this is how everyone will see you around the app.</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/star.png' %}" alt="">Your name</h2>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="name">
+    <label>Real name</label>
+    <input type="text" name="display_name" value="{{ me.display_name }}" maxlength="80" required>
+    <label>Nickname <span class="sub" style="text-transform:none;font-weight:500">(optional — shown big everywhere; your real name becomes a tiny sub-line)</span></label>
+    <input type="text" name="nickname" value="{{ me.nickname }}" maxlength="60" placeholder="e.g. Mal">
+    <button class="btn ghost small" type="submit" style="margin-top:10px" data-snd="rustle">Save my name</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/leaf.png' %}" alt="">Your trail identity</h2>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="identity">
+    <label>Icon</label>
+    <div class="icon-grid">
+      {% for val, lbl in icon_choices %}
+      <label>
+        <input type="radio" name="icon" value="{{ val }}" {% if me.icon == val %}checked{% endif %} required>
+        <span class="cell {% if val in taken_icons %}taken{% endif %}">
+          <img src="{% static 'img/icons/' %}{{ val }}.png" alt="">
+          {{ lbl }}
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    <p class="muted" style="font-size:11px;margin-top:5px">Faded icons are taken by someone else — you can still share if you like.</p>
+    <label>Color</label>
+    <div class="color-grid">
+      {% for val, lbl in color_choices %}
+      <label title="{{ lbl }}">
+        <input type="radio" name="color" value="{{ val }}" {% if me.color == val %}checked{% endif %}>
+        <span style="background:{{ val }}"></span>
+      </label>
+      {% endfor %}
+    </div>
+    <button class="btn" type="submit" style="width:100%;margin-top:14px">Save my identity</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/fire.png' %}" alt="">Sounds</h2>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="sounds">
+    <label style="display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-size:13.5px">
+      <input type="checkbox" name="sounds_on" style="width:auto" {% if profile.sounds_on %}checked{% endif %}>
+      Forest sound effects (rustling leaves, twig snaps, owl hoots)
+    </label>
+    <button class="btn ghost small" type="submit" style="margin-top:10px">Save</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/mountain.png' %}" alt="">Primary trip</h2>
+  {% if profile.primary_trip %}
+  <p class="muted" style="font-size:13px"><strong>{{ profile.primary_trip.name }}</strong> is your primary trip — you skip the trips screen until it's over.</p>
+  <form method="post" style="margin-top:8px">
+    {% csrf_token %}
+    <button class="btn ghost small" name="action" value="reset_primary" data-snd="snap">Clear primary trip</button>
+  </form>
+  {% else %}
+  <p class="muted" style="font-size:13px">No primary trip set — you'll pick a trip each time you open the app.</p>
+  <form method="post" style="margin-top:8px">
+    {% csrf_token %}
+    <button class="btn ghost small" name="action" value="reset_primary" data-snd="snap">Ask me again next time</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">About</h2>
+  <p style="font-size:13.5px;margin-bottom:8px">
+    <strong>Brock Trip 2026</strong> is an early detached beta of the
+    <strong>Guiltali</strong> project — a party &amp; guild coordination system for trips,
+    events, and everything a crew does together.
+  </p>
+  <p class="muted" style="font-size:12.5px">
+    Created by Malachi. Handcrafted UI, deterministic split algorithms, and a
+    Terraria-inspired trail theme. Things will move and change — that's the fun part.
+  </p>
+  <div class="divider"></div>
+  <p class="muted" style="font-size:11.5px">
+    Signed in as {{ user.username }} · sessions stay signed in on this device for ~90 days.
+  </p>
+</div>
+
+{% endblock %}
