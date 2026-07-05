@@ -62,8 +62,8 @@ check("home renders", r.status_code == 200 and b"Brock Trip" in r.content)
 check("home has menu", b"The menu" in r.content)
 
 for path, marker in [
-    ("/itinerary/", b"TRIP TIMELINE"),
-    ("/schedule/", b"here when"),
+    ("/itinerary/", b"TRIP SCHEDULE"),
+    ("/schedule/", b"Attendance timeline"),
     ("/stay/", b"Berkeley Springs"),
     ("/budget/", b"Your balance"),
     ("/budget/add/", b"Add an expense"),
@@ -208,6 +208,16 @@ check("identity nickname save", r.status_code == 302)
 me_m = Membership.objects.get(party=trip.party, user__username="malachi")
 check("nickname persisted", me_m.nickname == "Smokey")
 check("shown_name uses nickname", me_m.shown_name == "Smokey")
+
+# expense edit: payer can edit own; admin can edit anyone's
+from party.models import Expense
+own_exp = Expense.objects.filter(trip=trip, payer=me_m).first()
+check("sample expense for edit test", own_exp is not None)
+if own_exp:
+    r = c.get(f"/budget/edit/{own_exp.id}/")
+    check("admin opens expense edit", r.status_code == 302)
+    r = c_kayla.get(f"/budget/edit/{own_exp.id}/")
+    check("non-payer blocked from edit", r.status_code in (403, 404))
 
 print(f"\n{PASS} passed, {FAIL} failed")
 raise SystemExit(1 if FAIL else 0)

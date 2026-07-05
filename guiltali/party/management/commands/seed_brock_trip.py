@@ -618,9 +618,9 @@ class Command(BaseCommand):
             ("The menu is posted",
              "Three planned dinners with full cooking instructions, all Eden-safe. Vote in the dinner polls to set the order.",
              "/info/", "See the menu", "#f6ecd9"),
-            ("Schedule chart is up",
+            ("Attendance timeline is up",
              "See who's at the house each day and set your own arrive/depart times.",
-             "/schedule/", "Open the schedule", "#e8f0f4"),
+             "/schedule/", "Open attendance timeline", "#e8f0f4"),
         ]:
             Post.objects.get_or_create(
                 trip=trip, kind=Post.KIND_BLAST, title=title,

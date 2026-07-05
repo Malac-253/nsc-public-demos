@@ -25,7 +25,7 @@
       {% if item.updated_by %} · {% if item.done %}checked{% else %}unchecked{% endif %} by {{ item.updated_by.shown_name }}{% if item.updated_at %}, {{ item.updated_at|timesince }} ago{% endif %}{% endif %}
     </span>
     {% if is_staff %}
-    <form method="post" style="display:contents">
+    <form method="post" style="display:contents" onsubmit="return confirm('Remove “{{ item.text|escapejs }}” from this list?')">
       {% csrf_token %}
       <input type="hidden" name="action" value="remove_item">
       <input type="hidden" name="item_id" value="{{ item.id }}">
@@ -45,7 +45,7 @@
     <input type="text" name="text" placeholder="Add an item…" required>
     <button class="btn small" type="submit" data-snd="rustle">Add</button>
   </form>
-  <form method="post" style="display:flex;gap:8px;margin-top:8px;align-items:center">
+  <form method="post" style="display:flex;gap:8px;margin-top:8px;align-items:center" onsubmit="return confirm('Rename this list?')">
     {% csrf_token %}
     <input type="hidden" name="action" value="rename">
     <input type="text" name="name" value="{{ tl.name }}" style="flex:1" placeholder="List title">

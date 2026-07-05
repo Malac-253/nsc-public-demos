@@ -104,6 +104,9 @@
             {% if row.my_share is not None %}<div>Your share: <strong>${{ row.my_share }}</strong></div>
             {% elif row.excluded %}<div class="muted">You're not on this one.</div>{% endif %}
             {% if row.exp.receipt %}<a href="{{ row.exp.receipt.url }}" target="_blank" style="margin-top:4px;display:inline-block">View receipt →</a>{% endif %}
+            {% if row.can_edit %}
+            <a class="btn ghost small" href="{% url 'budget_edit' row.exp.id %}" style="margin-top:8px;display:inline-block" data-snd="rustle">Edit expense</a>
+            {% endif %}
           </div>
         </details>
       </td>

@@ -27,7 +27,7 @@
   {% endfor %}
   <form method="post" style="margin-top:14px">
     {% csrf_token %}
-    <button class="btn" name="action" value="confirm" style="width:100%">Looks good — add it</button>
+    <button class="btn" name="action" value="confirm" style="width:100%">{% if editing %}Looks good — save changes{% else %}Looks good — add it{% endif %}</button>
     <button class="btn ghost" name="action" value="cancel" style="width:100%;margin-top:8px" data-snd="snap">Go back &amp; edit</button>
   </form>
 </div>

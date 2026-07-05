@@ -14,8 +14,8 @@
 <a href="{% url 'budget' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Budget</a>
 
 <div class="card wood" style="margin-top:8px">
-  <h2><img src="{% static 'img/icons/acorn.png' %}" alt="">Add an expense</h2>
-  {% if draft %}<p class="muted" style="font-size:12.5px;margin-bottom:10px">Editing your preview — change anything and preview again.</p>{% endif %}
+  <h2><img src="{% static 'img/icons/acorn.png' %}" alt="">{% if editing %}Edit expense{% else %}Add an expense{% endif %}</h2>
+  {% if draft %}<p class="muted" style="font-size:12.5px;margin-bottom:10px">{% if editing %}Change anything and preview again.{% else %}Editing your preview — change anything and preview again.{% endif %}</p>{% endif %}
   <form method="post" id="expense-form">
     {% csrf_token %}
     <input type="hidden" name="action" value="add">
@@ -93,7 +93,7 @@
     <label style="display:flex;align-items:center;gap:8px;margin-top:10px;text-transform:none;letter-spacing:0">
       <input type="checkbox" name="is_pre_trip" style="width:auto" {% if draft and draft.is_pre_trip %}checked{% endif %}> Pre-trip expense
     </label>
-    <button class="btn" type="submit" style="width:100%;margin-top:14px">Preview the split</button>
+    <button class="btn" type="submit" style="width:100%;margin-top:14px">{% if editing %}Preview changes{% else %}Preview the split{% endif %}</button>
   </form>
 </div>
 {% endblock %}

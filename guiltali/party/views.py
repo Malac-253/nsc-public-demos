@@ -288,6 +288,50 @@ def _parse_participants(request, members: list) -> list:
     return picked or list(members)
 
 
+def _can_edit_expense(me: Membership, exp: Expense) -> bool:
+    return exp.payer_id == me.id or me.role == Membership.ROLE_ADMIN
+
+
+def _expense_to_pending(exp: Expense, members: list) -> dict:
+    """Serialize an existing expense into the session draft shape."""
+    shares = list(exp.shares.all())
+    participants = [s.member_id for s in shares if not s.excluded]
+    if not participants:
+        participants = [m.id for m in members]
+    detail: dict[str, str] = {}
+    n = len(participants)
+    if exp.split_method == Expense.SPLIT_PERCENT and exp.amount:
+        for s in shares:
+            if not s.excluded:
+                pct = (s.amount / exp.amount * 100).quantize(Decimal("0.01"))
+                detail[str(s.member_id)] = str(pct)
+    elif exp.split_method == Expense.SPLIT_CUSTOM:
+        for s in shares:
+            if not s.excluded:
+                detail[str(s.member_id)] = str(s.amount)
+    elif exp.split_method == Expense.SPLIT_ADJUST and n:
+        baseline = (exp.amount / Decimal(n)).quantize(Decimal("0.01"))
+        for s in shares:
+            if not s.excluded:
+                detail[str(s.member_id)] = str((s.amount - baseline).quantize(Decimal("0.01")))
+    elif exp.split_method == Expense.SPLIT_SHARES:
+        for s in shares:
+            if not s.excluded:
+                detail[str(s.member_id)] = str(int(s.amount)) if s.amount == int(s.amount) else str(s.amount)
+    return {
+        "editing_id": exp.id,
+        "title": exp.title,
+        "amount": str(exp.amount),
+        "payer_id": exp.payer_id,
+        "method": exp.split_method,
+        "tags": exp.tags or [],
+        "is_pre_trip": exp.is_pre_trip,
+        "participants": participants,
+        "row_color": exp.row_color or "",
+        "detail": detail,
+    }
+
+
 @login_required
 def budget(request):
     trip = _trip(request)
@@ -305,6 +349,7 @@ def budget(request):
             "my_share": mine,
             "excluded": my_share_obj.excluded if my_share_obj else False,
             "tag_labels": [TAG_MAP.get(t, t) for t in (exp.tags or [])],
+            "can_edit": _can_edit_expense(me, exp),
         })
 
     balance_rows = None
@@ -389,7 +434,7 @@ def budget_add(request):
         row_color = request.POST.get("row_color", "").strip()
         if row_color and not row_color.startswith("#"):
             row_color = ""
-        request.session["pending_expense"] = {
+        pending_data = {
             "title": title,
             "amount": str(amount),
             "payer_id": payer_id,
@@ -400,6 +445,10 @@ def budget_add(request):
             "participants": [m.id for m in participants],
             "row_color": row_color,
         }
+        prev = request.session.get("pending_expense") or {}
+        if prev.get("editing_id"):
+            pending_data["editing_id"] = prev["editing_id"]
+        request.session["pending_expense"] = pending_data
         return redirect("budget_confirm")
 
     row_color_choices = [
@@ -416,7 +465,24 @@ def budget_add(request):
         "tag_choices": Expense.TAG_CHOICES,
         "row_color_choices": row_color_choices,
         "draft": draft,
+        "editing": bool(draft and draft.get("editing_id")),
     })
+
+
+@login_required
+def budget_edit(request, expense_id: int):
+    """Load an existing expense into the add/confirm flow for editing."""
+    trip = _trip(request)
+    me = _me(request, trip)
+    exp = get_object_or_404(
+        Expense.objects.prefetch_related("shares"),
+        pk=expense_id, trip=trip,
+    )
+    if not _can_edit_expense(me, exp):
+        raise Http404
+    members = list(trip.party.memberships.exclude(is_ai=True).select_related("user"))
+    request.session["pending_expense"] = _expense_to_pending(exp, members)
+    return redirect(f"{reverse('budget_add')}?edit=1")
 
 
 @login_required
@@ -453,6 +519,31 @@ def budget_confirm(request):
 
     if request.method == "POST":
         if request.POST.get("action") == "confirm":
+            editing_id = pending.get("editing_id")
+            if editing_id:
+                exp = get_object_or_404(Expense, pk=editing_id, trip=trip)
+                if not _can_edit_expense(me, exp):
+                    raise Http404
+                exp.title = pending["title"]
+                exp.amount = Decimal(pending["amount"])
+                exp.payer_id = pending["payer_id"]
+                exp.split_method = pending["method"]
+                exp.is_pre_trip = pending["is_pre_trip"]
+                exp.tags = pending["tags"]
+                exp.split_note = note
+                exp.row_color = pending.get("row_color", "")
+                exp.save()
+                exp.shares.all().delete()
+                share_objs = [
+                    ExpenseShare(expense=exp, member_id=mid, amount=amt)
+                    for mid, amt in shares.items()
+                ]
+                for m in excluded:
+                    share_objs.append(ExpenseShare(expense=exp, member=m, amount=Decimal("0"), excluded=True))
+                ExpenseShare.objects.bulk_create(share_objs)
+                del request.session["pending_expense"]
+                messages.success(request, f"Updated {exp.title} — {note}")
+                return redirect("budget")
             exp.incurred_on = timezone.localdate()
             exp.tags = pending["tags"]
             exp.split_note = note
@@ -479,6 +570,7 @@ def budget_confirm(request):
         "share_rows": share_rows,
         "excluded": excluded,
         "tag_labels": [TAG_MAP.get(t, t) for t in pending["tags"]],
+        "editing": bool(pending.get("editing_id")),
     })
 
 

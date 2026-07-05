@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Timeline{% endblock %}
+{% block title %}Trip schedule{% endblock %}
 {% block extra_css %}
 .trailhead{position:relative;border-radius:14px;overflow:hidden;height:120px;margin-bottom:14px;
   background:url("{% static 'img/px-parallax-far.png' %}") center 60%/cover no-repeat;
@@ -43,7 +43,7 @@
 {% block content %}
 <div class="trailhead">
   <div class="cap">
-    <div class="ttl">TRIP TIMELINE</div>
+    <div class="ttl">TRIP SCHEDULE</div>
     <div class="sub">{{ trip.start_date|date:"M j" }} – {{ trip.end_date|date:"M j" }} · {{ days|length }} days on the trail</div>
   </div>
 </div>
@@ -95,8 +95,8 @@
 </div>
 
 <div class="card">
-  <h2><img src="{% static 'img/icons/sun.png' %}" alt="">Who's here when</h2>
+  <h2><img src="{% static 'img/icons/sun.png' %}" alt="">Attendance timeline</h2>
   <p class="muted">Partial stays factor into the "split by nights present" expense algorithm automatically.
-  See the full <a href="{% url 'schedule' %}">schedule chart</a>.</p>
+  See the full <a href="{% url 'schedule' %}">attendance timeline</a>.</p>
 </div>
 {% endblock %}

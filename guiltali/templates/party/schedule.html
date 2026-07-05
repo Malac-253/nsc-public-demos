@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Schedule{% endblock %}
+{% block title %}Attendance timeline{% endblock %}
 {% block extra_css %}
 .sched-head{display:grid;grid-template-columns:92px 1fr;gap:6px;margin-bottom:4px}
 .day-strip{display:flex}
@@ -25,7 +25,7 @@
 {% endblock %}
 {% block content %}
 <div class="card wood">
-  <h2><img src="{% static 'img/icons/sun.png' %}" alt="">Who's here when
+  <h2><img src="{% static 'img/icons/sun.png' %}" alt="">Attendance timeline
     <span class="sub">{{ trip.start_date|date:"M j" }} – {{ trip.end_date|date:"M j" }}</span></h2>
 
   <div class="sched-head">
