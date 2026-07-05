@@ -115,7 +115,10 @@ if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
     AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
     AWS_S3_FILE_OVERWRITE = False
     AWS_DEFAULT_ACL = None
-    AWS_QUERYSTRING_AUTH = False
+    # Private bucket + time-limited signed URLs — only pages your app renders (after login)
+    # get working links; raw S3 object URLs return 403. Download/img/video still work.
+    AWS_QUERYSTRING_AUTH = True
+    AWS_QUERYSTRING_EXPIRE = int(os.environ.get("AWS_QUERYSTRING_EXPIRE", "86400"))  # 24h
     AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
     custom_domain = os.environ.get("AWS_S3_CUSTOM_DOMAIN")
     if custom_domain:

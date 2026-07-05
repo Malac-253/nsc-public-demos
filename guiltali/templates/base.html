@@ -41,6 +41,19 @@ body{
   animation:driftDots 34s linear infinite;
 }
 @keyframes driftDots{from{background-position:0 0,0 0}to{background-position:0 0,220px 220px}}
+/* slow color wash — very low opacity, shifts through meadow tones */
+body::after{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:linear-gradient(125deg,
+    rgba(47,125,79,.07) 0%, rgba(201,164,65,.06) 28%,
+    rgba(63,127,191,.05) 55%, rgba(93,127,53,.06) 78%, rgba(47,125,79,.07) 100%);
+  background-size:240% 240%;
+  animation:colorWash 48s ease-in-out infinite;
+  mix-blend-mode:multiply;
+}
+@keyframes colorWash{
+  0%,100%{background-position:0% 40%;opacity:.55}
+  50%{background-position:100% 60%;opacity:.85}
+}
 /* soft drifting light blobs behind everything, purely decorative */
 body::before{content:"";position:fixed;inset:-10% -10%;z-index:-1;pointer-events:none;
   background:
@@ -48,7 +61,7 @@ body::before{content:"";position:fixed;inset:-10% -10%;z-index:-1;pointer-events
     radial-gradient(300px 300px at 85% 30%,rgba(201,164,65,.09),transparent 65%),
     radial-gradient(360px 360px at 70% 85%,rgba(63,127,191,.07),transparent 65%),
     radial-gradient(280px 280px at 20% 80%,rgba(122,46,53,.06),transparent 65%);
-  animation:blobDrift 26s ease-in-out infinite alternate;
+  animation:blobDrift 26s ease-in-out infinite alternate, blobTint 55s ease-in-out infinite;
   filter:blur(4px);
 }
 @keyframes blobDrift{
@@ -56,15 +69,23 @@ body::before{content:"";position:fixed;inset:-10% -10%;z-index:-1;pointer-events
   50%{transform:translate(2%,-3%) scale(1.06)}
   100%{transform:translate(-3%,2%) scale(1.02)}
 }
-/* drifting leaf/spore particles */
-.particle{position:fixed;z-index:-1;pointer-events:none;top:-40px;font-size:16px;
-  opacity:.5;animation-name:fallDrift;animation-timing-function:linear;animation-iteration-count:infinite}
+@keyframes blobTint{
+  0%,100%{filter:blur(4px) hue-rotate(0deg) saturate(1)}
+  33%{filter:blur(4px) hue-rotate(12deg) saturate(1.05)}
+  66%{filter:blur(4px) hue-rotate(-10deg) saturate(.98)}
+}
+/* drifting leaf/spore particles + soft dots */
+.particle,.particle-dot{position:fixed;z-index:-1;pointer-events:none;top:-40px}
+.particle{font-size:16px;opacity:.45;animation-name:fallDrift;
+  animation-timing-function:linear;animation-iteration-count:infinite}
+.particle-dot{border-radius:50%;animation-name:fallDrift;
+  animation-timing-function:linear;animation-iteration-count:infinite}
 @keyframes fallDrift{
   from{transform:translate(0,0) rotate(0deg)}
   to{transform:translate(var(--drift,40px),115vh) rotate(340deg)}
 }
 @media (prefers-reduced-motion:reduce){
-  body,body::before,.particle{animation:none !important}
+  body,body::before,body::after,.particle,.particle-dot{animation:none !important}
 }
 a{color:var(--green);text-decoration:none}
 main{max-width:640px;margin:0 auto;padding:16px 16px 40px;animation:pageIn .35s ease both}
@@ -92,6 +113,11 @@ header.app .inner{max-width:640px;margin:0 auto;display:flex;align-items:center;
 .role-chip{font-size:9px;font-family:var(--display);font-weight:700;text-transform:uppercase;
   padding:2px 7px;border-radius:6px;background:rgba(0,0,0,.2);color:#d4e6d6}
 .whoami a{color:#c8ddd0;font-size:11.5px}
+.logout-btn{appearance:none;border:1px solid rgba(255,255,255,.28);
+  background:rgba(0,0,0,.25);color:#e8f2ea;font-family:inherit;font-size:10.5px;font-weight:700;
+  padding:6px 11px;border-radius:9px;cursor:pointer;white-space:nowrap;line-height:1;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);transition:background .15s ease,border-color .15s ease}
+.logout-btn:active{background:rgba(0,0,0,.4);border-color:rgba(255,255,255,.4)}
 
 /* ---------- announcements ---------- */
 .announce{max-width:640px;margin:10px auto 0;padding:0 16px}
@@ -254,7 +280,7 @@ nav.tabbar a.active img{transform:translateY(-2px) scale(1.15);filter:none;
         <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#cfe4d4">You</span>
       </a>
       <span class="role-chip">{{ me.get_role_display }}</span>
-      <a href="{% url 'logout' %}" onclick="event.preventDefault();document.getElementById('logout-form').submit()">out</a>
+      <button type="button" class="logout-btn" data-snd="snap" onclick="document.getElementById('logout-form').submit()">Log Out</button>
       <form id="logout-form" method="post" action="{% url 'logout' %}" hidden>{% csrf_token %}</form>
     </div>
   </div>
@@ -390,17 +416,36 @@ function dismissNote(btn) {
 /* ------- drifting leaf/spore particles (decorative, respects reduced-motion) ------- */
 (function () {
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const glyphs = ["🍃", "🌿", "🍂"];
-  for (let i = 0; i < 6; i++) {
+  const glyphs = ["🍃", "🌿", "🍂", "🌰", "✿", "·"];
+  const dotColors = [
+    "rgba(47,125,79,.14)", "rgba(201,164,65,.12)", "rgba(63,127,191,.10)",
+    "rgba(93,127,53,.13)", "rgba(196,122,61,.11)",
+  ];
+  function spawn(el, i, total) {
+    el.style.left = (Math.random() * 100) + "vw";
+    el.style.setProperty("--drift", (Math.random() * 100 - 50) + "px");
+    el.style.animationDuration = (14 + Math.random() * 18) + "s";
+    el.style.animationDelay = (-Math.random() * total * 2) + "s";
+  }
+  for (let i = 0; i < 16; i++) {
     const p = document.createElement("span");
     p.className = "particle";
     p.textContent = glyphs[i % glyphs.length];
-    p.style.left = (Math.random() * 100) + "vw";
-    p.style.setProperty("--drift", (Math.random() * 80 - 40) + "px");
-    p.style.animationDuration = (16 + Math.random() * 14) + "s";
-    p.style.animationDelay = (-Math.random() * 20) + "s";
-    p.style.fontSize = (12 + Math.random() * 10) + "px";
+    p.style.fontSize = (10 + Math.random() * 12) + "px";
+    p.style.opacity = (0.25 + Math.random() * 0.35).toFixed(2);
+    spawn(p, i, 16);
     document.body.appendChild(p);
+  }
+  for (let i = 0; i < 14; i++) {
+    const d = document.createElement("span");
+    d.className = "particle-dot";
+    const size = 3 + Math.random() * 5;
+    d.style.width = size + "px";
+    d.style.height = size + "px";
+    d.style.background = dotColors[i % dotColors.length];
+    d.style.opacity = (0.2 + Math.random() * 0.35).toFixed(2);
+    spawn(d, i, 14);
+    document.body.appendChild(d);
   }
 })();
 

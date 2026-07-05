@@ -1,48 +1,98 @@
-databases:
-  - name: guiltali-db
-    plan: free
-    databaseName: guiltali
-
-services:
-  - type: web
-    name: guiltali-brock-trip
-    runtime: python
-    plan: free
-    rootDir: guiltali
-    buildCommand: "./build.sh"
-    startCommand: "gunicorn guiltali.wsgi:application"
-    # ── UPLOAD PERSISTENCE (pick one) ──────────────────────────────────────
-    #
-    # Option A — Render persistent disk (Starter plan ~$7/mo):
-    #   Uncomment disk + MEDIA_ROOT below, upgrade the web service to Starter.
-    #
-    # Option B — AWS S3 (works on free tier; recommended for photos & videos):
-    #   Create a bucket, make objects public-read (or use CloudFront).
-    #   Add env vars in Render dashboard:
-    #     AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME,
-    #     AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-    #   Optional: AWS_S3_CUSTOM_DOMAIN for a CDN URL.
-    #
-    # Without A or B, user uploads disappear on every redeploy (demo seed
-    # photos are re-synced each build; member uploads are not).
-    #
-    # disk:
-    #   name: guiltali-media
-    #   mountPath: /var/data
-    #   sizeGB: 1
-    envVars:
-      - key: SECRET_KEY
-        generateValue: true
-      - key: DEBUG
-        value: "0"
-      - key: WEB_CONCURRENCY
-        value: "2"
-      - key: PYTHON_VERSION
-        value: "3.12.6"
-      - key: DATABASE_URL
-        fromDatabase:
-          name: guiltali-db
-          property: connectionString
-      # Uncomment with disk above (Starter+ plan):
-      # - key: MEDIA_ROOT
-      #   value: /var/data/media
+databases:
+
+  - name: guiltali-db
+
+    plan: free
+
+    databaseName: guiltali
+
+
+
+services:
+
+  - type: web
+
+    name: guiltali-brock-trip
+
+    runtime: python
+
+    plan: free
+
+    rootDir: guiltali
+
+    buildCommand: "./build.sh"
+
+    startCommand: "gunicorn guiltali.wsgi:application"
+
+    # ── UPLOAD PERSISTENCE (pick one) ──────────────────────────────────────
+
+    #
+
+    # Option A — Render persistent disk (Starter plan ~$7/mo):
+
+    #   Uncomment disk + MEDIA_ROOT below, upgrade the web service to Starter.
+
+    #
+
+    # Option B — AWS S3 private bucket (works on free tier; recommended):
+
+    #   Keep "Block all public access" ON — do NOT add a public bucket policy.
+
+    #   IAM user needs s3:PutObject, s3:GetObject, s3:DeleteObject, s3:ListBucket.
+
+    #   Add env vars in Render dashboard:
+
+    #     AWS_STORAGE_BUCKET_NAME, AWS_S3_REGION_NAME,
+
+    #     AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+
+    #   The app uses presigned URLs so only logged-in pages get working media links.
+
+    #
+
+    # Without A or B, user uploads disappear on every redeploy (demo seed
+
+    # photos are re-synced each build; member uploads are not).
+
+    #
+
+    # disk:
+
+    #   name: guiltali-media
+
+    #   mountPath: /var/data
+
+    #   sizeGB: 1
+
+    envVars:
+
+      - key: SECRET_KEY
+
+        generateValue: true
+
+      - key: DEBUG
+
+        value: "0"
+
+      - key: WEB_CONCURRENCY
+
+        value: "2"
+
+      - key: PYTHON_VERSION
+
+        value: "3.12.6"
+
+      - key: DATABASE_URL
+
+        fromDatabase:
+
+          name: guiltali-db
+
+          property: connectionString
+
+      # Uncomment with disk above (Starter+ plan):
+
+      # - key: MEDIA_ROOT
+
+      #   value: /var/data/media
+
