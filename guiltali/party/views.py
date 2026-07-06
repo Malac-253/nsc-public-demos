@@ -1305,13 +1305,29 @@ def _feed_posts_queryset(trip, *, member_filter: str | None = None, kind: str = 
     return posts, filtered_member
 
 
+def _format_reaction_names(names: list[str]) -> str:
+    if not names:
+        return ""
+    if len(names) <= 2:
+        return " · ".join(names)
+    return f"{names[0]} +{len(names) - 1}"
+
+
 def _reaction_summary_rows(reactions) -> list[dict]:
-    """[{emoji, count, names}, ...] ordered by count desc."""
+    """[{emoji, count, names, names_label}, ...] ordered by count desc."""
     by_emoji: dict[str, list[str]] = {}
     for r in reactions:
         by_emoji.setdefault(r.emoji, []).append(r.member.shown_name)
     return sorted(
-        [{"emoji": e, "count": len(names), "names": names} for e, names in by_emoji.items()],
+        [
+            {
+                "emoji": e,
+                "count": len(names),
+                "names": names,
+                "names_label": _format_reaction_names(names),
+            }
+            for e, names in by_emoji.items()
+        ],
         key=lambda row: -row["count"],
     )
 

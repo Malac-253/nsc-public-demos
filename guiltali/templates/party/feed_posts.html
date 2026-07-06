@@ -74,7 +74,7 @@
 
     <div class="react-wrap" data-post-id="{{ p.id }}">
       <span class="react-summary">
-        {% for r in p.reaction_summary %}<span class="react-pill pill"{% if r.names %} title="{{ r.names|join:', ' }}"{% endif %}><span class="react-emoji">{{ r.emoji }}</span><span class="react-count">{{ r.count }}</span></span>{% endfor %}
+        {% for r in p.reaction_summary %}<span class="react-pill pill"{% if r.names %} title="{{ r.names|join:', ' }}"{% endif %}><span class="react-pill-head"><span class="react-emoji">{{ r.emoji }}</span><span class="react-count">{{ r.count }}</span></span>{% if r.names_label %}<span class="react-names">{{ r.names_label }}</span>{% endif %}</span>{% endfor %}
       </span>
       <button type="button" class="react-toggle" data-react-toggle data-snd="snap">+ react</button>
       <div class="react-picker" data-react-picker>
