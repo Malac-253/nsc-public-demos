@@ -27,6 +27,7 @@ from .models import (
     PollOption,
     Post,
     PostImage,
+    PostLink,
     PostVideo,
     PostReaction,
     Settlement,
@@ -90,6 +91,206 @@ def _notify_everyone(trip: Trip, text: str, *, actor: Membership | None = None, 
     Notification.objects.bulk_create([
         Notification(trip=trip, recipient=m, actor=actor, text=text, link_path=link_path)
         for m in members
+    ])
+
+
+def _post_notify_text(post: Post) -> str:
+    preview = (post.title or post.text or "").strip()
+    if len(preview) > 72:
+        preview = preview[:69] + "…"
+    kind = post.get_kind_display().lower()
+    return f"{post.author.shown_name} posted a new {kind}: {preview or 'check the feed'}"
+
+
+def _publish_poll_to_feed(poll: Poll, *, notify: bool = True) -> Post | None:
+    if Post.objects.filter(poll=poll).exists():
+        return None
+    post = Post.objects.create(
+        trip=poll.trip,
+        author=poll.author,
+        kind=Post.KIND_POLL,
+        title=poll.question,
+        poll=poll,
+        bg_color="#f6ecd9",
+    )
+    if notify:
+        _notify_everyone(
+            poll.trip,
+            f"{poll.author.shown_name} started a poll: {poll.question[:80]}",
+            actor=poll.author,
+            link_path=f"{reverse('feed')}#post-{post.id}",
+        )
+    return post
+
+
+def _schedule_next_daily_poll(poll: Poll) -> Poll | None:
+    if not poll.repeat_daily or not poll.opens_at:
+        return None
+    next_opens = poll.opens_at + dt.timedelta(days=1)
+    if next_opens.date() > poll.trip.end_date + dt.timedelta(days=1):
+        return None
+    if Poll.objects.filter(trip=poll.trip, question=poll.question, opens_at=next_opens).exists():
+        return None
+    new_poll = Poll.objects.create(
+        trip=poll.trip,
+        author=poll.author,
+        question=poll.question,
+        anonymous=poll.anonymous,
+        multiple_choice=poll.multiple_choice,
+        two_stage=poll.two_stage,
+        stage=poll.stage,
+        closes_at=poll.closes_at,
+        opens_at=next_opens,
+        repeat_daily=True,
+    )
+    for opt in poll.options.all():
+        PollOption.objects.create(
+            poll=new_poll,
+            text=opt.text,
+            order=opt.order,
+            suggested_by=opt.suggested_by,
+        )
+    return new_poll
+
+
+def _parse_opens_at(raw: str):
+    if not raw:
+        return None
+    try:
+        when = dt.datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if timezone.is_naive(when):
+        when = timezone.make_aware(when, timezone.get_current_timezone())
+    return when
+
+
+def _scheduled_polls_for(trip: Trip, me: Membership):
+    from django.db.models import Exists, OuterRef
+
+    qs = Poll.objects.filter(trip=trip, opens_at__isnull=False).annotate(
+        has_post=Exists(Post.objects.filter(poll_id=OuterRef("pk"))),
+    ).filter(has_post=False).select_related("author").order_by("opens_at")
+    if not me.is_staff_role:
+        qs = qs.filter(author=me)
+    return qs
+
+
+def _post_link_rows(post: Post) -> list[dict]:
+    rows: list[dict] = []
+    if post.link_url or post.internal_path:
+        rows.append({
+            "url": post.link_url,
+            "label": post.link_label or "Open link",
+            "internal": post.internal_path if not post.link_url else "",
+        })
+    for pl in post.links.all():
+        rows.append({
+            "url": pl.link_url,
+            "label": pl.label or "Open link",
+            "internal": pl.internal_path if not pl.link_url else "",
+        })
+    return rows or [{"url": "", "label": "", "internal": ""}]
+
+
+def _can_manage_scheduled_poll(me: Membership, poll: Poll) -> bool:
+    if Post.objects.filter(poll=poll).exists():
+        return False
+    return poll.author_id == me.id or me.is_staff_role
+
+
+def _clone_scheduled_poll(poll: Poll, opens_at) -> Poll:
+    new_poll = Poll.objects.create(
+        trip=poll.trip,
+        author=poll.author,
+        question=poll.question,
+        anonymous=poll.anonymous,
+        multiple_choice=poll.multiple_choice,
+        two_stage=poll.two_stage,
+        stage=poll.stage,
+        closes_at=poll.closes_at,
+        opens_at=opens_at,
+        repeat_daily=poll.repeat_daily,
+    )
+    for opt in poll.options.all():
+        PollOption.objects.create(
+            poll=new_poll,
+            text=opt.text,
+            order=opt.order,
+            suggested_by=opt.suggested_by,
+        )
+    return new_poll
+
+
+def _create_scheduled_poll_from_post(request, trip, me):
+    """Shared handler for poll schedule forms."""
+    two_stage = bool(request.POST.get("two_stage"))
+    close_mode = request.POST.get("close_mode", "trip_end")
+    closes_at = None
+    if close_mode == "hour":
+        closes_at = timezone.now() + dt.timedelta(hours=1)
+    elif close_mode == "custom":
+        raw = request.POST.get("closes_at", "")
+        try:
+            closes_at = dt.datetime.fromisoformat(raw)
+            if timezone.is_naive(closes_at):
+                closes_at = timezone.make_aware(closes_at, timezone.get_current_timezone())
+        except ValueError:
+            closes_at = None
+    elif close_mode == "trip_end":
+        closes_at = trip.default_poll_close
+    opens_at = _parse_opens_at(request.POST.get("opens_at", ""))
+    if not opens_at:
+        return None, "Pick when the poll should go live."
+    repeat_daily = bool(request.POST.get("repeat_daily"))
+    poll = Poll.objects.create(
+        trip=trip, author=me,
+        question=request.POST["question"].strip(),
+        anonymous=bool(request.POST.get("anonymous")),
+        multiple_choice=bool(request.POST.get("multiple_choice")),
+        two_stage=two_stage,
+        stage=Poll.STAGE_SUGGEST if two_stage else Poll.STAGE_VOTE,
+        closes_at=closes_at,
+        opens_at=opens_at,
+        repeat_daily=repeat_daily,
+    )
+    for i, raw in enumerate(request.POST.get("options", "").splitlines()):
+        text = raw.strip()
+        if text:
+            PollOption.objects.create(poll=poll, text=text, order=i, suggested_by=me)
+    return poll, None
+
+
+def _save_post_links(post: Post, request) -> None:
+    urls = request.POST.getlist("link_url")
+    labels = request.POST.getlist("link_label")
+    internals = request.POST.getlist("link_internal")
+    post.links.all().delete()
+    first_url = first_label = first_internal = ""
+    extra: list[tuple[str, str, str]] = []
+    for i, url in enumerate(urls):
+        url = url.strip()
+        label = (labels[i] if i < len(labels) else "").strip() or "Open link"
+        internal = (internals[i] if i < len(internals) else "").strip()
+        if not url and not internal:
+            continue
+        if not first_url and not first_internal:
+            first_url, first_label, first_internal = url, label, internal
+        else:
+            extra.append((url, label, internal))
+    post.link_url = first_url
+    post.link_label = first_label if first_url else (first_label if first_internal else "")
+    post.internal_path = first_internal if not first_url else ""
+    post.save(update_fields=["link_url", "link_label", "internal_path"])
+    PostLink.objects.bulk_create([
+        PostLink(
+            post=post,
+            link_url=url,
+            internal_path=internal if not url else "",
+            label=label,
+            order=i,
+        )
+        for i, (url, label, internal) in enumerate(extra)
     ])
 
 
@@ -395,6 +596,18 @@ def _expense_to_pending(exp: Expense, members: list) -> dict:
 def budget(request):
     trip = _trip(request)
     me = _me(request, trip)
+
+    if request.method == "POST" and request.POST.get("action") == "clear_all_expenses":
+        if me.role != Membership.ROLE_ADMIN:
+            raise Http404
+        if request.POST.get("confirm") != "DELETE ALL":
+            messages.error(request, 'Type DELETE ALL in the box to confirm wiping every expense.')
+            return redirect("budget")
+        count = trip.expenses.count()
+        trip.expenses.all().delete()
+        messages.success(request, f"Removed {count} expense(s). You can start fresh.")
+        return redirect("budget")
+
     members = list(trip.party.memberships.exclude(is_ai=True).select_related("user"))
     balances = member_balances(trip)
     my_balance = balances.get(me.id, Decimal("0"))
@@ -1069,6 +1282,63 @@ def picker_tool(request):
 
 # ---------------------------------------------------------------- feed
 
+FEED_PAGE_SIZE = 12
+_FEED_POLL_PALETTE = ["#2f7d4f", "#c47a3d", "#3f7fbf", "#7a5fa0", "#b0533b", "#4d8f8b", "#c9a441", "#5d7f35"]
+
+
+def _feed_posts_queryset(trip, *, member_filter: str | None = None, kind: str = ""):
+    from django.db.models import Q
+
+    posts = trip.posts.filter(archived=False).select_related("author", "poll").prefetch_related(
+        "comments__author", "extra_images", "videos", "links", "poll__options__votes", "reactions",
+    ).order_by("-created_at", "-id")
+    filtered_member = None
+    if member_filter:
+        filtered_member = get_object_or_404(Membership, pk=member_filter, party=trip.party)
+        posts = posts.filter(Q(author=filtered_member) | Q(comments__author=filtered_member)).distinct()
+    if kind in dict(Post.KIND_CHOICES):
+        posts = posts.filter(kind=kind)
+    return posts, filtered_member
+
+
+def _enrich_feed_posts(posts, me, trip, filtered_member=None):
+    member_count = trip.party.memberships.exclude(is_ai=True).count()
+    posts = list(posts)
+    for post in posts:
+        all_reactions = list(post.reactions.all())
+        post.my_reaction_set = {r.emoji for r in all_reactions if r.member_id == me.id}
+        counts: dict[str, int] = {}
+        for r in all_reactions:
+            counts[r.emoji] = counts.get(r.emoji, 0) + 1
+        post.reaction_counts = counts
+        if post.poll_id:
+            voter_ids = post.poll.voter_ids()
+            post.poll_total_members = member_count
+            post.poll_voted_count = len(voter_ids)
+            post.poll_i_voted = me.id in voter_ids
+            if post.poll.stage in (Poll.STAGE_VOTE, Poll.STAGE_CLOSED):
+                total = post.poll.total_votes()
+                post.poll_preview_options = [
+                    {
+                        "text": opt.text,
+                        "count": opt.votes.count(),
+                        "pct": int(opt.votes.count() / total * 100) if total else 0,
+                        "color": _FEED_POLL_PALETTE[i % len(_FEED_POLL_PALETTE)],
+                    }
+                    for i, opt in enumerate(post.poll.options.all()[:5])
+                ]
+            else:
+                post.poll_preview_options = []
+        post.can_archive = post.author_id == me.id or me.is_staff_role
+        post.can_delete = post.author_id == me.id or me.role == Membership.ROLE_ADMIN
+        post.can_edit = (post.author_id == me.id or me.is_staff_role) and not post.poll_id
+        post.highlight_author = bool(filtered_member and post.author_id == filtered_member.id)
+        if filtered_member:
+            for c in post.comments.all():
+                c.is_highlighted = c.author_id == filtered_member.id
+    return posts
+
+
 @login_required
 def feed(request):
     trip = _trip(request)
@@ -1087,21 +1357,6 @@ def feed(request):
                         actor=me, link_path=f"{reverse('feed')}?member={post.author_id}",
                     )
             return _redirect_feed(request, int(request.POST["post_id"]))
-        if action == "announce" and me.is_staff_role:
-            audience_id = request.POST.get("audience") or None
-            Announcement.objects.create(
-                trip=trip, author=me,
-                text=request.POST["text"].strip(),
-                audience_id=audience_id,
-                pinned=bool(request.POST.get("pinned")),
-            )
-            if audience_id:
-                target = get_object_or_404(Membership, pk=audience_id, party=trip.party)
-                Notification.notify(trip, target, f"{me.shown_name} sent you a notice: {request.POST['text'].strip()[:80]}", actor=me, link_path=reverse("feed"))
-            else:
-                _notify_everyone(trip, f"Announcement: {request.POST['text'].strip()[:80]}", actor=me, link_path=reverse("feed"))
-            messages.success(request, "Announcement posted.")
-            return redirect("feed")
         if action in ("archive_post", "delete_post"):
             post = get_object_or_404(Post, pk=request.POST["post_id"], trip=trip)
             is_own = post.author_id == me.id
@@ -1122,65 +1377,97 @@ def feed(request):
                     post.poll.save(update_fields=["stage"])
             return _redirect_feed(request, post.id)
 
-    posts = trip.posts.filter(archived=False).select_related("author", "poll").prefetch_related(
-        "comments__author", "extra_images", "videos", "poll__options__votes", "reactions",
-    )
-    member_filter = request.GET.get("member")
-    filtered_member = None
-    if member_filter:
-        from django.db.models import Q
-        filtered_member = get_object_or_404(Membership, pk=member_filter, party=trip.party)
-        # Show their own posts *and* posts they've weighed in on, so a profile
-        # view surfaces the full trail of what they've said, not just what they authored.
-        posts = posts.filter(Q(author=filtered_member) | Q(comments__author=filtered_member)).distinct()
     kind = request.GET.get("kind", "")
-    if kind in dict(Post.KIND_CHOICES):
-        posts = posts.filter(kind=kind)
+    posts_qs, filtered_member = _feed_posts_queryset(
+        trip, member_filter=request.GET.get("member"), kind=kind,
+    )
+    page = list(posts_qs[: FEED_PAGE_SIZE + 1])
+    feed_has_more = len(page) > FEED_PAGE_SIZE
+    if feed_has_more:
+        page = page[:FEED_PAGE_SIZE]
+    posts = _enrich_feed_posts(page, me, trip, filtered_member)
 
-    member_count = trip.party.memberships.exclude(is_ai=True).count()
-    palette = ["#2f7d4f", "#c47a3d", "#3f7fbf", "#7a5fa0", "#b0533b", "#4d8f8b", "#c9a441", "#5d7f35"]
-    posts = list(posts)
-    for post in posts:
-        all_reactions = list(post.reactions.all())
-        post.my_reaction_set = {r.emoji for r in all_reactions if r.member_id == me.id}
-        counts: dict[str, int] = {}
-        for r in all_reactions:
-            counts[r.emoji] = counts.get(r.emoji, 0) + 1
-        post.reaction_counts = counts
-        if post.poll_id:
-            voter_ids = post.poll.voter_ids()
-            post.poll_total_members = member_count
-            post.poll_voted_count = len(voter_ids)
-            post.poll_i_voted = me.id in voter_ids
-            # Inline options preview for voting stage
-            if post.poll.stage in (Poll.STAGE_VOTE, Poll.STAGE_CLOSED):
-                total = post.poll.total_votes()
-                post.poll_preview_options = [
-                    {
-                        "text": opt.text,
-                        "count": opt.votes.count(),
-                        "pct": int(opt.votes.count() / total * 100) if total else 0,
-                        "color": palette[i % len(palette)],
-                    }
-                    for i, opt in enumerate(post.poll.options.all()[:5])
-                ]
-            else:
-                post.poll_preview_options = []
-        post.can_archive = post.author_id == me.id or me.is_staff_role
-        post.can_delete = post.author_id == me.id or me.role == Membership.ROLE_ADMIN
-        post.highlight_author = bool(filtered_member and post.author_id == filtered_member.id)
-        if filtered_member:
-            for c in post.comments.all():
-                c.is_highlighted = c.author_id == filtered_member.id
-
-    members = trip.party.memberships.exclude(is_ai=True).all()
     return render(request, "party/feed.html", {
         "posts": posts,
-        "members": members,
         "filtered_member": filtered_member,
         "active_kind": kind,
         "reaction_choices": PostReaction.EMOJI_CHOICES,
+        "feed_has_more": feed_has_more,
+        "feed_next_before": page[-1].id if feed_has_more and page else None,
     })
+
+
+@login_required
+def feed_more(request):
+    """Return the next chunk of feed posts as HTML for incremental loading."""
+    from django.template.loader import render_to_string
+
+    trip = _trip(request)
+    me = _me(request, trip)
+    try:
+        before = int(request.GET["before"])
+    except (KeyError, TypeError, ValueError):
+        raise Http404
+    kind = request.GET.get("kind", "")
+    posts_qs, filtered_member = _feed_posts_queryset(
+        trip, member_filter=request.GET.get("member"), kind=kind,
+    )
+    chunk = list(posts_qs.filter(id__lt=before)[: FEED_PAGE_SIZE + 1])
+    has_more = len(chunk) > FEED_PAGE_SIZE
+    if has_more:
+        chunk = chunk[:FEED_PAGE_SIZE]
+    if not chunk:
+        return JsonResponse({"html": "", "has_more": False, "next_before": None})
+    posts = _enrich_feed_posts(chunk, me, trip, filtered_member)
+    html = render_to_string(
+        "party/feed_posts.html",
+        {
+            "posts": posts,
+            "me": me,
+            "reaction_choices": PostReaction.EMOJI_CHOICES,
+            "request": request,
+        },
+        request=request,
+    )
+    return JsonResponse({
+        "html": html,
+        "has_more": has_more,
+        "next_before": chunk[-1].id if has_more else None,
+    })
+
+
+@login_required
+def feed_announce(request):
+    """Post a banner announcement (admins & mods)."""
+    trip = _trip(request)
+    me = _me(request, trip)
+    if not me.is_staff_role:
+        raise Http404
+
+    if request.method == "POST":
+        text = request.POST.get("text", "").strip()
+        if text:
+            audience_id = request.POST.get("audience") or None
+            Announcement.objects.create(
+                trip=trip, author=me,
+                text=text,
+                audience_id=audience_id,
+                pinned=bool(request.POST.get("pinned")),
+            )
+            if audience_id:
+                target = get_object_or_404(Membership, pk=audience_id, party=trip.party)
+                Notification.notify(
+                    trip, target,
+                    f"{me.shown_name} sent you a notice: {text[:80]}",
+                    actor=me, link_path=reverse("feed"),
+                )
+            else:
+                _notify_everyone(trip, f"Announcement: {text[:80]}", actor=me, link_path=reverse("feed"))
+            messages.success(request, "Announcement posted.")
+        return redirect("feed")
+
+    members = trip.party.memberships.exclude(is_ai=True).all()
+    return render(request, "party/feed_announce.html", {"members": members})
 
 
 @login_required
@@ -1201,10 +1488,18 @@ def feed_new(request):
                 raw = request.POST.get("closes_at", "")
                 try:
                     closes_at = dt.datetime.fromisoformat(raw)
+                    if timezone.is_naive(closes_at):
+                        closes_at = timezone.make_aware(closes_at, timezone.get_current_timezone())
                 except ValueError:
                     closes_at = None
             elif close_mode == "trip_end":
                 closes_at = trip.default_poll_close
+            schedule = bool(request.POST.get("schedule"))
+            opens_at = _parse_opens_at(request.POST.get("opens_at", "")) if schedule else None
+            repeat_daily = bool(request.POST.get("repeat_daily")) if schedule else False
+            if schedule and not opens_at:
+                messages.error(request, "Pick a date and time for the scheduled poll.")
+                return redirect("feed_new")
             poll = Poll.objects.create(
                 trip=trip, author=me,
                 question=request.POST["question"].strip(),
@@ -1213,16 +1508,18 @@ def feed_new(request):
                 two_stage=two_stage,
                 stage=Poll.STAGE_SUGGEST if two_stage else Poll.STAGE_VOTE,
                 closes_at=closes_at,
+                opens_at=opens_at,
+                repeat_daily=repeat_daily,
             )
             for i, raw in enumerate(request.POST.get("options", "").splitlines()):
                 text = raw.strip()
                 if text:
                     PollOption.objects.create(poll=poll, text=text, order=i, suggested_by=me)
-            Post.objects.create(
-                trip=trip, author=me, kind=Post.KIND_POLL,
-                title=poll.question, poll=poll,
-                bg_color=request.POST.get("bg_color", ""),
-            )
+            if schedule and opens_at and opens_at > timezone.now():
+                when = timezone.localtime(opens_at).strftime("%a %b %d · %I:%M %p").lstrip("0")
+                messages.success(request, f"Poll scheduled for {when}.")
+                return redirect("feed_new")
+            post = _publish_poll_to_feed(poll)
             messages.success(request, "Poll posted to the feed.")
             return redirect("poll_detail", poll_id=poll.id)
 
@@ -1239,12 +1536,11 @@ def feed_new(request):
             title=request.POST.get("title", "").strip(),
             text=request.POST.get("text", "").strip(),
             image=request.FILES.get("image"),
-            link_url=request.POST.get("link_url", "").strip(),
-            link_label=request.POST.get("link_label", "").strip() or "Open link",
             bg_color=request.POST.get("bg_color", ""),
             suggested_by_note=request.POST.get("suggested_by_note", "").strip(),
             event=event,
         )
+        _save_post_links(post, request)
         for f in request.FILES.getlist("more_images")[:8]:
             PostImage.objects.create(post=post, image=f)
         for i, f in enumerate(request.FILES.getlist("videos")[:3]):
@@ -1252,6 +1548,12 @@ def feed_new(request):
         if post.videos.exists() and post.kind == Post.KIND_BLAST:
             post.kind = Post.KIND_PHOTO
             post.save(update_fields=["kind"])
+        _notify_everyone(
+            trip,
+            _post_notify_text(post),
+            actor=me,
+            link_path=f"{reverse('feed')}#post-{post.id}",
+        )
         messages.success(request, "Posted to the feed.")
         return redirect(f"{reverse('feed')}#post-{post.id}")
 
@@ -1260,6 +1562,119 @@ def feed_new(request):
         "bg_choices": Post.BG_CHOICES,
         "trip": trip,
         "events": trip.events.all(),
+        "scheduled_polls": _scheduled_polls_for(trip, me),
+    })
+
+
+@login_required
+def feed_edit(request, post_id: int):
+    """Edit an existing feed post (not polls)."""
+    trip = _trip(request)
+    me = _me(request, trip)
+    post = get_object_or_404(
+        Post.objects.prefetch_related("links"),
+        pk=post_id, trip=trip, archived=False,
+    )
+    if post.poll_id:
+        raise Http404
+    if post.author_id != me.id and not me.is_staff_role:
+        raise Http404
+
+    if request.method == "POST":
+        post.kind = request.POST.get("kind", post.kind)
+        post.title = request.POST.get("title", "").strip()
+        post.text = request.POST.get("text", "").strip()
+        post.bg_color = request.POST.get("bg_color", "")
+        post.suggested_by_note = request.POST.get("suggested_by_note", "").strip()
+        post.save()
+        _save_post_links(post, request)
+        messages.success(request, "Post updated.")
+        return redirect(f"{reverse('feed')}#post-{post.id}")
+
+    return render(request, "party/feed_edit.html", {
+        "post": post,
+        "link_rows": _post_link_rows(post),
+        "kind_choices": [k for k in Post.KIND_CHOICES if k[0] != Post.KIND_POLL],
+        "bg_choices": Post.BG_CHOICES,
+    })
+
+
+@login_required
+def poll_schedule(request):
+    """Upcoming scheduled polls — admins see all, others see their own."""
+    trip = _trip(request)
+    me = _me(request, trip)
+    polls = list(_scheduled_polls_for(trip, me))
+    return render(request, "party/poll_schedule.html", {"polls": polls})
+
+
+@login_required
+def poll_schedule_new(request):
+    trip = _trip(request)
+    me = _me(request, trip)
+    if request.method == "POST":
+        poll, err = _create_scheduled_poll_from_post(request, trip, me)
+        if err:
+            messages.error(request, err)
+        else:
+            when = timezone.localtime(poll.opens_at).strftime("%a %b %d · %I:%M %p").lstrip("0")
+            messages.success(request, f"Scheduled for {when}.")
+            return redirect("poll_schedule")
+    return render(request, "party/poll_schedule_form.html", {
+        "form_title": "Schedule a poll",
+        "submit_label": "Save schedule",
+        "poll": None,
+    })
+
+
+@login_required
+def poll_schedule_edit(request, poll_id: int):
+    trip = _trip(request)
+    me = _me(request, trip)
+    poll = get_object_or_404(
+        Poll.objects.prefetch_related("options"),
+        pk=poll_id, trip=trip,
+    )
+    if not _can_manage_scheduled_poll(me, poll):
+        raise Http404
+
+    if request.method == "POST":
+        action = request.POST.get("action", "save")
+        if action == "delete":
+            poll.delete()
+            messages.success(request, "Scheduled poll removed.")
+            return redirect("poll_schedule")
+        if action == "add_time":
+            new_opens = _parse_opens_at(request.POST.get("new_opens_at", ""))
+            if not new_opens:
+                messages.error(request, "Pick a date and time for the new slot.")
+            else:
+                _clone_scheduled_poll(poll, new_opens)
+                when = timezone.localtime(new_opens).strftime("%a %b %d · %I:%M %p").lstrip("0")
+                messages.success(request, f"Added another slot for {when}.")
+            return redirect("poll_schedule_edit", poll_id=poll.id)
+        poll.question = request.POST.get("question", poll.question).strip() or poll.question
+        poll.anonymous = bool(request.POST.get("anonymous"))
+        poll.multiple_choice = bool(request.POST.get("multiple_choice"))
+        poll.repeat_daily = bool(request.POST.get("repeat_daily"))
+        new_opens = _parse_opens_at(request.POST.get("opens_at", ""))
+        if new_opens:
+            poll.opens_at = new_opens
+        poll.save()
+        poll.options.all().delete()
+        for i, raw in enumerate(request.POST.get("options", "").splitlines()):
+            text = raw.strip()
+            if text:
+                PollOption.objects.create(poll=poll, text=text, order=i, suggested_by=me)
+        messages.success(request, "Schedule updated.")
+        return redirect("poll_schedule")
+
+    options_text = "\n".join(o.text for o in poll.options.all())
+    return render(request, "party/poll_schedule_form.html", {
+        "form_title": "Edit scheduled poll",
+        "submit_label": "Save changes",
+        "poll": poll,
+        "options_text": options_text,
     })
 
 

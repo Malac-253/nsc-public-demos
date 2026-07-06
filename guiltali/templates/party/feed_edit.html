@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Edit post{% endblock %}
+{% block extra_css %}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches label{display:block;width:38px;height:38px;border-radius:11px;border:3px solid var(--line);
+  cursor:pointer;margin:0}
+.swatches input{display:none}
+.swatches input:checked + span{display:block;width:100%;height:100%;border-radius:7px;
+  outline:3px solid var(--green);outline-offset:2px}
+.swatches span{display:block;width:100%;height:100%;border-radius:7px}
+.link-rows{display:flex;flex-direction:column;gap:8px}
+.link-row{display:flex;gap:8px;align-items:flex-start}
+.link-row input{flex:1}
+.link-row .rm{flex:none;margin-top:8px;padding:6px 10px;font-size:12px}
+{% endblock %}
+{% block content %}
+<a href="{% url 'feed' %}#post-{{ post.id }}" class="muted" style="font-size:12.5px" data-snd="rustle">← Back to post</a>
+
+<div class="card wood" style="margin-top:8px">
+  <h2><img src="{% static 'img/icons/fire.png' %}" alt="">Edit post</h2>
+  <form method="post">
+    {% csrf_token %}
+    <label>Type</label>
+    <select name="kind">
+      {% for val, lbl in kind_choices %}
+      <option value="{{ val }}" {% if post.kind == val %}selected{% endif %}>{{ lbl }}</option>
+      {% endfor %}
+    </select>
+    <label>Title (optional)</label>
+    <input type="text" name="title" maxlength="160" value="{{ post.title }}">
+    <label>What's happening?</label>
+    <textarea name="text" rows="3">{{ post.text }}</textarea>
+    <label>Links (each becomes a button)</label>
+    <div class="link-rows" id="link-rows">
+      {% for row in link_rows %}
+      <div class="link-row">
+        <input type="url" name="link_url" placeholder="https://…" value="{{ row.url }}">
+        <input type="text" name="link_label" placeholder="Button label" maxlength="80" value="{{ row.label }}">
+        <input type="hidden" name="link_internal" value="{{ row.internal }}">
+        {% if not forloop.first %}<button type="button" class="btn ghost small rm" data-snd="snap">×</button>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="btn ghost small" id="add-link-row" data-snd="snap" style="margin-top:6px">+ Add another link</button>
+    <label>Card color</label>
+    <div class="swatches">
+      {% for val, lbl in bg_choices %}
+      <label title="{{ lbl }}">
+        <input type="radio" name="bg_color" value="{{ val }}" {% if post.bg_color == val or not val and not post.bg_color %}checked{% endif %}>
+        <span style="background:{{ val|default:'#fffdf6' }}"></span>
+      </label>
+      {% endfor %}
+    </div>
+    <label>Posting for someone else? (optional)</label>
+    <input type="text" name="suggested_by_note" maxlength="120" value="{{ post.suggested_by_note }}">
+    <button class="btn" type="submit" style="width:100%;margin-top:14px">Save changes</button>
+  </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById("add-link-row").addEventListener("click", () => {
+  const row = document.createElement("div");
+  row.className = "link-row";
+  row.innerHTML = `
+    <input type="url" name="link_url" placeholder="https://…">
+    <input type="text" name="link_label" placeholder="Button label" maxlength="80">
+    <input type="hidden" name="link_internal" value="">
+    <button type="button" class="btn ghost small rm" data-snd="snap">×</button>`;
+  row.querySelector(".rm").addEventListener("click", () => row.remove());
+  document.getElementById("link-rows").appendChild(row);
+});
+document.querySelectorAll("#link-rows .rm").forEach(btn => {
+  btn.addEventListener("click", () => btn.closest(".link-row").remove());
+});
+</script>
+{% endblock %}

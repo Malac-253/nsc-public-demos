@@ -38,10 +38,16 @@ urlpatterns = [
     path("info/<slug:slug>/edit/", views.info_page_edit, name="info_page_edit"),
 
     path("feed/", views.feed, name="feed"),
+    path("feed/more/", views.feed_more, name="feed_more"),
     path("feed/new/", views.feed_new, name="feed_new"),
+    path("feed/announce/", views.feed_announce, name="feed_announce"),
+    path("feed/edit/<int:post_id>/", views.feed_edit, name="feed_edit"),
     path("feed/react/", views.react, name="react"),
     path("photos/", views.photos, name="photos"),
     path("events/", views.events_list, name="events_list"),
+    path("polls/scheduled/", views.poll_schedule, name="poll_schedule"),
+    path("polls/scheduled/new/", views.poll_schedule_new, name="poll_schedule_new"),
+    path("polls/scheduled/<int:poll_id>/edit/", views.poll_schedule_edit, name="poll_schedule_edit"),
     path("polls/<int:poll_id>/", views.poll_detail, name="poll_detail"),
 
     path("party/", views.party, name="party"),

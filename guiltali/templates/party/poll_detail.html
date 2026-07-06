@@ -33,7 +33,7 @@
   {% if not poll.anonymous and members_voted is not None %}
   <p style="font-size:12px;font-weight:700;margin:-2px 0 10px;color:var(--green-deep)">
     {{ members_voted }}/{{ members_total }} of the party has voted
-    {% if not_voted %} — waiting on {% for m in not_voted %}{{ m.shown_name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}
+    {% if not_voted %} — waiting on {% for m in not_voted %}{{ m.roster_name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}
   </p>
   {% endif %}
 

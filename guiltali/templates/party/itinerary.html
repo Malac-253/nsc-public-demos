@@ -60,10 +60,10 @@
       </div>
 
       {% if d.arriving %}
-        <div class="flow-note"><img src="{% static 'img/icons/compass.png' %}" alt=""><strong>Arriving:</strong>&nbsp;{% for m in d.arriving %}{{ m.shown_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+        <div class="flow-note"><img src="{% static 'img/icons/compass.png' %}" alt=""><strong>Arriving:</strong>&nbsp;{% for m in d.arriving %}{{ m.roster_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
       {% endif %}
       {% if d.departing %}
-        <div class="flow-note"><img src="{% static 'img/icons/bark.png' %}" alt=""><strong>Leaving:</strong>&nbsp;{% for m in d.departing %}{{ m.shown_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+        <div class="flow-note"><img src="{% static 'img/icons/bark.png' %}" alt=""><strong>Leaving:</strong>&nbsp;{% for m in d.departing %}{{ m.roster_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
       {% endif %}
 
       {% for act in d.activities %}

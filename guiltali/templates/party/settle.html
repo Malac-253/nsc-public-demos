@@ -48,7 +48,7 @@
     <div class="item-row plan-row" role="button" tabindex="0"
          data-pay-from="{{ p.from_member.id }}" data-pay-to="{{ p.to_member.id }}" data-pay-amount="{{ p.amount }}"
          {% if p.mine %}style="background:var(--green-soft);border-radius:8px;padding-left:8px;padding-right:8px"{% endif %}>
-      <span style="font-size:13.5px">{{ p.from_member.shown_name }} pays {{ p.to_member.shown_name }}</span>
+      <span style="font-size:13.5px">{{ p.from_member.roster_name }} pays {{ p.to_member.roster_name }}</span>
       <span class="qty" style="font-weight:800;color:var(--ink)">${{ p.amount }}</span>
     </div>
     {% endfor %}
@@ -63,7 +63,7 @@
     <div class="item-row plan-row" role="button" tabindex="0"
          data-pay-from="{{ p.from_member.id }}" data-pay-to="{{ p.to_member.id }}" data-pay-amount="{{ p.amount }}"
          {% if p.mine %}style="background:var(--amber-soft);border-radius:8px;padding-left:8px;padding-right:8px"{% endif %}>
-      <span style="font-size:13.5px">{{ p.from_member.shown_name }} → {{ p.to_member.shown_name }}</span>
+      <span style="font-size:13.5px">{{ p.from_member.roster_name }} → {{ p.to_member.roster_name }}</span>
       <span class="qty" style="font-weight:800;color:var(--ink)">${{ p.amount }}</span>
     </div>
     {% endfor %}
@@ -79,7 +79,7 @@
   {% for row in balance_rows %}
   <div class="item-row" {% if row.member.id == me.id %}style="background:var(--green-soft);border-radius:8px;padding-left:8px;padding-right:8px"{% endif %}>
     <a class="avatar-px" href="{% url 'member_link' row.member.id %}" style="width:36px;height:36px;background:{{ row.member.swatch }}18;border-color:{{ row.member.swatch }}44"><img src="{{ row.member.icon_url }}" alt="" style="width:26px;height:26px"></a>
-    <span>{{ row.member.shown_name }}{% if row.member.real_name_sub %}<br><span style="font-size:10px;color:var(--muted);font-weight:600">{{ row.member.real_name_sub }}</span>{% endif %}</span>
+    <span>{{ row.member.roster_name }}</span>
     <span class="qty {% if row.balance >= 0 %}money-pos{% else %}money-neg{% endif %}" style="font-size:13.5px">
       {% if row.balance >= 0 %}+{% endif %}${{ row.balance|floatformat:2 }}
     </span>
@@ -93,7 +93,7 @@
   <h2><img src="{% static 'img/icons/leaf.png' %}" alt="">Recent settle-ups</h2>
   {% for s in settlements %}
   <div class="item-row" style="font-size:13px">
-    <span>{{ s.from_member.shown_name }} → {{ s.to_member.shown_name }}: <strong>${{ s.amount }}</strong></span>
+    <span>{{ s.from_member.roster_name }} → {{ s.to_member.roster_name }}: <strong>${{ s.amount }}</strong></span>
     <span style="margin-left:auto">
       {% if s.status == 'confirmed' %}
         <span class="pill">confirmed</span>
@@ -125,7 +125,7 @@
         <div>
           <label>I paid…</label>
           <select name="to_member" id="pay-to" required>
-            {% for m in members %}{% if m.id != me.id %}<option value="{{ m.id }}">{{ m.shown_name }}</option>{% endif %}{% endfor %}
+            {% for m in members %}{% if m.id != me.id %}<option value="{{ m.id }}">{{ m.roster_name }}</option>{% endif %}{% endfor %}
           </select>
         </div>
         <div>

@@ -1,0 +1,160 @@
+{% for p in posts %}
+<article id="post-{{ p.id }}" class="post{% if p.highlight_author %} blink-post{% endif %}" {% if p.bg_color %}style="background:{{ p.bg_color }}"{% endif %}>
+  <div class="head">
+    <a class="avatar-px" style="background:{{ p.author.swatch }}18;border-color:{{ p.author.swatch }}44" href="{% url 'member_link' p.author.id %}">
+      <img src="{{ p.author.icon_url }}" alt="" loading="lazy">
+    </a>
+    <div>
+      <div class="nm">{{ p.author.shown_name }}{% if p.author.feed_alias %} <span class="muted" style="font-weight:600;font-size:11px">· {{ p.author.feed_alias }}</span>{% endif %}</div>
+      {% if p.author.real_name_sub %}<div class="real-sub">{{ p.author.real_name_sub }}</div>{% endif %}
+      <div class="tm">{{ p.created_at|timesince }} ago{% if p.event %} · {{ p.event.name }}{% endif %}</div>
+    </div>
+    <span class="pill kind-tag {% if p.kind == 'suggestion' %}amber{% elif p.kind == 'photo' %}bark{% elif p.kind == 'poll' %}red{% endif %}">{{ p.get_kind_display }}</span>
+  </div>
+
+  <div class="body">
+    {% if p.suggested_by_note %}<div class="muted" style="font-size:11.5px;margin-bottom:3px">{{ p.suggested_by_note }}</div>{% endif %}
+    {% if p.title %}<div style="font-weight:800;font-size:15px;margin-bottom:3px">{{ p.title }}<button class="copy-title" type="button" data-copy="{{ p.title }}" onclick="copyTitle(this)" title="Copy title" data-snd="rustle">⎘</button></div>{% endif %}
+    {% if p.text %}<p style="font-size:14px">{{ p.text|linebreaksbr }}</p>{% endif %}
+
+    {% if p.poll %}
+    <div class="pollbox">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#8a6a00;margin-bottom:3px">Poll</div>
+      <div style="font-weight:700;font-size:14px;color:#5a3c00">{{ p.poll.question }}</div>
+      <div style="font-size:12px;font-weight:700;color:#8a6a00;margin-top:3px">
+        {% if p.poll.stage == 'suggest' %}Collecting suggestions — add yours!
+        {% elif p.poll.stage == 'vote' %}Voting open — {{ p.poll.total_votes }} vote{{ p.poll.total_votes|pluralize }}
+        {% else %}Poll closed — {{ p.poll.total_votes }} vote{{ p.poll.total_votes|pluralize }}{% endif %}
+      </div>
+      {% if p.poll_preview_options %}
+      <div style="margin-top:7px">
+        {% for opt in p.poll_preview_options %}
+        <div class="poll-bar-row">
+          <span class="opt-label">{{ opt.text }}</span>
+          <span class="poll-bar-track"><span class="poll-bar-fill" style="width:{{ opt.pct }}%;background:{{ opt.color }}"></span></span>
+          <span class="opt-pct">{{ opt.pct }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div class="poll-status" style="margin-top:5px">
+        {% if p.poll_i_voted %}<span class="ok">✓ You've voted</span>{% elif p.poll.stage == 'vote' %}<span class="pending">You haven't voted yet</span>{% endif %}
+        {% if p.poll_total_members %} · {{ p.poll_voted_count }}/{{ p.poll_total_members }} weighed in{% endif %}
+      </div>
+      <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap">
+        <a class="btn small brown" href="{% url 'poll_detail' p.poll.id %}" data-feed-return="#post-{{ p.id }}" data-snd="rustle">
+          {% if p.poll.stage == 'vote' and not p.poll_i_voted %}Vote now{% else %}View poll{% endif %}
+        </a>
+        {% if me.role == 'admin' or p.poll.author_id == me.id %}
+        <form method="post" style="margin:0">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="set_poll_stage">
+          <input type="hidden" name="post_id" value="{{ p.id }}">
+          <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ p.id }}">
+          {% if p.poll.stage == 'vote' %}
+            <input type="hidden" name="stage" value="closed">
+            <button class="btn ghost small" type="submit" data-snd="snap">Close poll</button>
+          {% elif p.poll.stage == 'closed' %}
+            <input type="hidden" name="stage" value="vote">
+            <button class="btn ghost small" type="submit" data-snd="snap">Reopen</button>
+          {% else %}
+            <input type="hidden" name="stage" value="vote">
+            <button class="btn ghost small" type="submit" data-snd="snap">Open voting</button>
+          {% endif %}
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% for link in p.button_links %}
+      {% if link.url %}<a class="linkbtn" href="{{ link.url }}" target="_blank" rel="noopener" data-snd="rustle">{{ link.label }}</a>
+      {% elif link.internal_path %}<a class="linkbtn" href="{{ link.internal_path }}" data-snd="rustle">{{ link.label }}</a>{% endif %}
+    {% endfor %}
+
+    <div class="react-wrap" data-post-id="{{ p.id }}">
+      <span class="react-summary">
+        {% for r in p.reaction_summary %}<span class="pill" style="font-size:11px">{{ r.emoji }} {{ r.count }}</span>{% endfor %}
+      </span>
+      <button type="button" class="react-toggle" data-react-toggle data-snd="snap">+ react</button>
+      <div class="react-picker" data-react-picker>
+        {% for emoji, label in reaction_choices %}
+        <form method="post" action="{% url 'react' %}" class="react-form" style="display:contents">
+          {% csrf_token %}
+          <input type="hidden" name="post_id" value="{{ p.id }}">
+          <input type="hidden" name="emoji" value="{{ emoji }}">
+          <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ p.id }}">
+          <button type="submit" class="react-btn{% if emoji in p.my_reaction_set %} mine{% endif %}" data-emoji="{{ emoji }}" title="{{ label }}" data-snd="snap">
+            {{ emoji }}
+          </button>
+        </form>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% with media=p.all_media %}
+  {% if media %}
+  <div class="slider" data-slider>
+    {% for m in media %}
+    <div class="sl">
+      {% if m.kind == "video" %}
+      <video src="{{ m.file.url|safe }}" controls playsinline preload="metadata"></video>
+      {% else %}
+      <img src="{{ m.file.url|safe }}" loading="lazy" decoding="async" alt="">
+      {% endif %}
+      <a class="dl" href="{{ m.file.url|safe }}" download data-snd="snap">Download</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% if media|length > 1 %}<div class="slider-dots" data-dots>{% for m in media %}<i class="{% if forloop.first %}on{% endif %}"></i>{% endfor %}</div>{% endif %}
+  {% endif %}
+  {% endwith %}
+
+  {% if p.can_archive or p.can_delete or p.can_edit %}
+  <div class="post-actions">
+    <button type="button" class="more-btn" data-more-toggle data-snd="snap" title="More">⋯</button>
+    <div class="more-menu" data-more-menu>
+      {% if p.can_edit %}
+      <a class="more-menu-link" href="{% url 'feed_edit' p.id %}" data-snd="rustle">Edit</a>
+      {% endif %}
+      {% if p.can_archive %}
+      <form method="post" data-feed-scroll-save>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="archive_post">
+        <input type="hidden" name="post_id" value="{{ p.id }}">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ p.id }}">
+        <button type="submit" data-snd="snap">Archive</button>
+      </form>
+      {% endif %}
+      {% if p.can_delete %}
+      <form method="post" onsubmit="return confirm('Delete this post?')" data-feed-scroll-save>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete_post">
+        <input type="hidden" name="post_id" value="{{ p.id }}">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ p.id }}">
+        <button type="submit" class="danger" data-snd="snap">Delete</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="comments">
+    {% for c in p.comments.all %}
+    <div class="cmt{% if c.is_highlighted %} blink-cmt{% endif %}">
+      <div class="cn"><a href="{% url 'member_link' c.author.id %}" style="display:contents;color:inherit"><img src="{{ c.author.icon_url }}" alt="" loading="lazy">{{ c.author.shown_name }}</a> <span class="ct">{{ c.created_at|timesince }} ago</span></div>
+      <div class="cb">{{ c.text }}</div>
+    </div>
+    {% endfor %}
+    <form class="cmt-form" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="comment">
+      <input type="hidden" name="post_id" value="{{ p.id }}">
+      <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ p.id }}">
+      <input type="text" name="text" placeholder="Add a comment…" maxlength="500" required>
+      <button class="btn small brown" type="submit">Post</button>
+    </form>
+  </div>
+</article>
+{% endfor %}

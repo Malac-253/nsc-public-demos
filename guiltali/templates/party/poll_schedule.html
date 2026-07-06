@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Poll schedule{% endblock %}
+{% block content %}
+<a href="{% url 'feed' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Feed</a>
+
+<div class="card wood" style="margin-top:8px">
+  <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">Scheduled polls
+    <span class="sub">go live automatically</span></h2>
+  <p class="muted" style="font-size:13px;margin-bottom:10px">Morning meal polls, timed votes, and anything queued for later. Published polls appear on the feed and notify everyone.</p>
+
+  {% for poll in polls %}
+  <div class="item-row" style="align-items:flex-start">
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:800;font-size:14px">{{ poll.question }}</div>
+      <div class="muted" style="font-size:11.5px;margin-top:3px">
+        {{ poll.opens_at|date:"D M j · g:i A" }}
+        {% if poll.repeat_daily %} · repeats daily{% endif %}
+        {% if poll.author_id != me.id %} · {{ poll.author.roster_name }}{% endif %}
+      </div>
+      <div style="font-size:12px;margin-top:4px;color:var(--muted)">
+        {% for opt in poll.options.all %}{{ opt.text }}{% if not forloop.last %} · {% endif %}{% endfor %}
+      </div>
+    </div>
+    <a class="btn ghost small" href="{% url 'poll_schedule_edit' poll.id %}" data-snd="rustle">Edit</a>
+  </div>
+  {% empty %}
+  <p class="muted">Nothing scheduled yet — tap <strong>+</strong> to queue a poll.</p>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block fab %}
+<a class="fab budget" href="{% url 'poll_schedule_new' %}" title="Schedule a poll" data-snd="rustle">
+  <span class="fab-plus">+</span><span>Schedule poll</span>
+</a>
+{% endblock %}

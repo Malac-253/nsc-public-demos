@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Announcement{% endblock %}
+{% block content %}
+<a href="{% url 'feed' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Feed</a>
+
+<div class="card wood" style="margin-top:8px">
+  <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">Post an announcement
+    <span class="sub">admins &amp; mods</span></h2>
+  <p class="muted" style="font-size:13px;margin-bottom:12px">Shows as a banner at the top of the app. Everyone gets notified unless you target one person.</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="text" name="text" maxlength="300" placeholder="e.g. Check the grocery list before Friday" required autofocus>
+    <div class="formrow" style="margin-top:8px">
+      <select name="audience">
+        <option value="">Everyone</option>
+        {% for m in members %}<option value="{{ m.id }}">Just {{ m.shown_name }}</option>{% endfor %}
+      </select>
+      <label class="tag-check" style="margin:0;display:flex;align-items:center;justify-content:center;text-transform:none;letter-spacing:0;border:2px solid var(--line);border-radius:9px">
+        <input type="checkbox" name="pinned" style="width:auto"> Pin it
+      </label>
+    </div>
+    <button class="btn" type="submit" style="margin-top:12px">Post announcement</button>
+  </form>
+</div>
+{% endblock %}

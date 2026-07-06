@@ -1,23 +1,16 @@
 """Seed the Brock Trip 2026 demo data (idempotent).
 
-Creates the party, the 12 members with login accounts, attendance,
-rooms (temp data), grocery task lists split three ways (houseing.txt),
-a packing list, a welcome announcement, and a sample poll.
-
-Passwords are printed at the end so the admin can text them out.
-Override any password later in Django admin.
+Creates the party, members with login accounts, attendance, rooms, grocery
+lists, packing list, info pages, and welcome announcements. Does not seed
+feed posts or polls — those come from real use.
 """
 from __future__ import annotations
 
 import datetime as dt
 import secrets
 from decimal import Decimal
-from pathlib import Path
 
-from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand
 
 from party.models import (
@@ -29,9 +22,6 @@ from party.models import (
     ItineraryActivity,
     Membership,
     Party,
-    Poll,
-    PollOption,
-    Post,
     Room,
     RoomClaim,
     TaskItem,
@@ -39,7 +29,6 @@ from party.models import (
     Trip,
     TripPhoto,
     UserProfile,
-    Vote,
 )
 from party.splits import preview_split
 
@@ -373,6 +362,8 @@ class Command(BaseCommand):
                 m.color = color
             if not m.nickname and username in NICKNAMES:
                 m.nickname = NICKNAMES[username]
+            if m.nickname and m.alias and m.alias.strip().casefold() == m.nickname.strip().casefold():
+                m.alias = ""
             m.is_ai = username == "squire"
             if username in TRAVEL_NOTES and not m.travel_note:
                 m.travel_note, m.travel_note_visibility = TRAVEL_NOTES[username]
@@ -473,28 +464,7 @@ class Command(BaseCommand):
             ExpenseShare.objects.bulk_create([
                 ExpenseShare(expense=exp, member_id=mid, amount=amt)
                 for mid, amt in shares.items()
-            ])
-
-        static_img = Path(settings.BASE_DIR) / "static" / "img"
-        self.stdout.write(f"Media storage: {default_storage.__class__.__name__}")
-        # Re-sync demo feed photos every deploy — Postgres survives redeploys but
-        # media files on Render's ephemeral disk do not. Replace any stale file so
-        # S3 keys stay in sync with the database.
-        for author_username, caption, filename in BOARD_PHOTOS:
-            author = members[author_username]
-            post = Post.objects.filter(
-                trip=trip, kind=Post.KIND_PHOTO, author=author, text=caption,
-            ).first()
-            if not post:
-                post = Post.objects.create(
-                    trip=trip, author=author, kind=Post.KIND_PHOTO, text=caption,
-                )
-            src = static_img / filename
-            if src.exists():
-                if post.image:
-                    post.image.delete(save=False)
-                post.image.save(filename, ContentFile(src.read_bytes()), save=True)
-                self.stdout.write(f"  photo → {post.image.name}")
+            ]        )
 
         for section, items in GROCERY_SECTIONS.items():
             tl, created = TaskList.objects.get_or_create(
@@ -574,80 +544,7 @@ class Command(BaseCommand):
             ),
         )
 
-        # ---- Dinner polls: one per cook night, one two-stage demo ----
         malachi = members["malachi"]
-        dinner_polls: list[Poll] = []
-        for question, opts in [
-            ("What do we eat night one (Thursday)?",
-             ["Creamy tomato pasta bar", "Taco & burrito bowls", "Breakfast for dinner"]),
-            ("What do we eat night two (Friday)?",
-             ["BBQ cookout", "Coconut chickpea curry", "Big salad + garlic bread night"]),
-        ]:
-            poll = Poll.objects.filter(trip=trip, question=question).first()
-            if not poll:
-                poll = Poll.objects.create(trip=trip, author=malachi, question=question)
-                for i, opt in enumerate(opts):
-                    PollOption.objects.create(poll=poll, text=opt, order=i, suggested_by=malachi)
-            dinner_polls.append(poll)
-
-        q3 = "What do we eat night three (Saturday)? Suggest first, vote after."
-        poll3 = Poll.objects.filter(trip=trip, question=q3).first()
-        if not poll3:
-            poll3 = Poll.objects.create(
-                trip=trip, author=malachi, question=q3,
-                two_stage=True, stage=Poll.STAGE_SUGGEST,
-            )
-            PollOption.objects.create(poll=poll3, text="Campfire chili + cornbread",
-                                      order=0, suggested_by=members["ethan"])
-            PollOption.objects.create(poll=poll3, text="Outdoor-kitchen pizza night",
-                                      order=1, suggested_by=members["sabah"])
-        dinner_polls.append(poll3)
-
-        # Cast a few demo votes on the first poll
-        p1 = dinner_polls[0]
-        if p1.total_votes() == 0:
-            opts = list(p1.options.all())
-            for username, idx in [("abby", 0), ("grant", 0), ("eden", 1), ("kayla", 2), ("collin", 0)]:
-                Vote.objects.get_or_create(option=opts[idx], member=members[username])
-
-        # Feed posts for each poll (polls live in the feed)
-        for poll in dinner_polls:
-            Post.objects.get_or_create(
-                trip=trip, kind=Post.KIND_POLL, poll=poll,
-                defaults=dict(author=poll.author, title=poll.question, bg_color="#f6ecd9"),
-            )
-
-        # ---- Auto-generated helper posts (links become buttons) ----
-        for title, text, path, label, color in [
-            ("Grocery lists are live",
-             "Three sections, three cars. Check yours off as you shop — the app tracks who grabbed what.",
-             "/info/", "Open the lists", "#eef4e8"),
-            ("The menu is posted",
-             "Three planned dinners with full cooking instructions, all Eden-safe. Vote in the dinner polls to set the order.",
-             "/info/", "See the menu", "#f6ecd9"),
-            ("Attendance timeline is up",
-             "See who's at the house each day and set your own arrive/depart times.",
-             "/schedule/", "Open attendance timeline", "#e8f0f4"),
-        ]:
-            Post.objects.get_or_create(
-                trip=trip, kind=Post.KIND_BLAST, title=title,
-                defaults=dict(author=malachi, text=text, internal_path=path,
-                              link_label=label, bg_color=color),
-            )
-
-        # ---- Cooper's suggestions ----
-        for title, text, url in COOPER_SUGGESTIONS:
-            Post.objects.get_or_create(
-                trip=trip, kind=Post.KIND_SUGGESTION, title=title,
-                defaults=dict(
-                    author=malachi, text=text,
-                    link_url=url, link_label="Look it up" if url else "",
-                    suggested_by_note="Cooper's suggestion — posted by Malachi",
-                    bg_color="#eef4e8",
-                ),
-            )
-
-        # ---- Location suggestions: Cooper's picks (hiking, caverns, etc.) ----
         InfoPage.objects.get_or_create(
             trip=trip, slug="coopers-picks",
             defaults=dict(
@@ -679,27 +576,6 @@ class Command(BaseCommand):
                 created_by=malachi, updated_by=malachi,
             ),
         )
-
-        # ---- Party AI Squire — auto-suggested spa & area posts ----
-        squire = members["squire"]
-        for title, text, url in [
-            ("Soak it in — Berkeley Springs bathhouse", "The state park bathhouse has the original "
-             "Roman bath and warm mineral soaking tubs — an easy half-day between hikes.",
-             "https://wvstateparks.com/park/berkeley-springs-state-park/"),
-            ("Spa day option: Coolfont Resort", "Bigger resort-style spa a few minutes away if the "
-             "state park bathhouse is booked up.", "https://coolfont.com/"),
-            ("Dinner-out backup: Lot 12 Public House", "If nobody's up for cooking one night, this is "
-             "the highest-rated spot downtown.", "https://www.lot12.com/"),
-        ]:
-            Post.objects.get_or_create(
-                trip=trip, kind=Post.KIND_SUGGESTION, title=title,
-                defaults=dict(
-                    author=squire, text=text, link_url=url,
-                    link_label="Look it up" if url else "",
-                    suggested_by_note="Auto-suggested by Party AI Squire",
-                    bg_color="#f1dde0",
-                ),
-            )
 
         self.stdout.write(self.style.SUCCESS("Brock Trip 2026 seeded."))
         if passwords:

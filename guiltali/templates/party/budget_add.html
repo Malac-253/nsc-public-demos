@@ -32,7 +32,7 @@
         <label>Who paid</label>
         <select name="payer">
           {% for m in members %}
-          <option value="{{ m.id }}" {% if draft %}{% if m.id == draft.payer_id %}selected{% endif %}{% elif m.id == me.id %}selected{% endif %}>{{ m.shown_name }}</option>
+          <option value="{{ m.id }}" {% if draft %}{% if m.id == draft.payer_id %}selected{% endif %}{% elif m.id == me.id %}selected{% endif %}>{{ m.roster_name }}</option>
           {% endfor %}
         </select>
       </div>
@@ -45,7 +45,7 @@
       <label class="member-check" data-member="{{ row.member.id }}">
         <input type="checkbox" name="include_{{ row.member.id }}" value="1"
           {% if row.included %}checked{% endif %}
-          onchange="syncMembers()"> {{ row.member.shown_name }}
+          onchange="syncMembers()"> {{ row.member.roster_name }}
       </label>
       {% endfor %}
     </div>
@@ -69,7 +69,7 @@
       <p class="muted" style="font-size:12px;margin-top:6px" id="detail-hint"></p>
       {% for row in member_fields %}
       <div class="detail-row included" data-member="{{ row.member.id }}">
-        <span style="flex:1;font-size:13px">{{ row.member.shown_name }}</span>
+        <span style="flex:1;font-size:13px">{{ row.member.roster_name }}</span>
         <input type="number" name="detail_{{ row.member.id }}" step="0.01" inputmode="decimal" placeholder="0" style="width:90px"
                value="{{ row.detail_val }}">
       </div>

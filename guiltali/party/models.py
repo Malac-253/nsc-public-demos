@@ -136,6 +136,22 @@ class Membership(models.Model):
         """Shown as a tiny sub-line only when a nickname is in use."""
         return self.display_name if self.nickname else ""
 
+    @property
+    def roster_name(self) -> str:
+        """Lists & rosters: nickname with real name in parentheses when set."""
+        if self.nickname:
+            return f"{self.nickname} ({self.display_name})"
+        return self.display_name
+
+    @property
+    def feed_alias(self) -> str:
+        """Legacy alias — omit when it repeats the nickname already shown."""
+        if not self.alias:
+            return ""
+        if self.alias.strip().casefold() == self.shown_name.strip().casefold():
+            return ""
+        return self.alias
+
     def roommates(self) -> "list[Membership]":
         claim = getattr(self, "room_claim", None)
         if not claim:
@@ -539,6 +555,14 @@ class Poll(models.Model):
         null=True, blank=True,
         help_text="Defaults to 2 days after the trip ends if left blank.",
     )
+    opens_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="When a scheduled poll goes live on the feed.",
+    )
+    repeat_daily = models.BooleanField(
+        default=False,
+        help_text="After publishing, queue the same poll for the next day at this time.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -557,6 +581,13 @@ class Poll(models.Model):
     def is_expired(self) -> bool:
         from django.utils import timezone
         return bool(self.closes_at) and timezone.now() >= self.closes_at
+
+    @property
+    def is_scheduled(self) -> bool:
+        """True when the poll is queued and not yet on the feed."""
+        if not self.opens_at:
+            return False
+        return not Post.objects.filter(poll=self).exists()
 
 
 class PollOption(models.Model):
@@ -663,6 +694,41 @@ class Post(models.Model):
             ({"emoji": e, "count": c} for e, c in counts.items()),
             key=lambda r: -r["count"],
         )
+
+    def button_links(self) -> list[dict]:
+        """External and in-app link buttons shown on the feed card."""
+        links: list[dict] = []
+        if self.link_url:
+            links.append({
+                "url": self.link_url,
+                "internal_path": "",
+                "label": self.link_label or "Open link",
+            })
+        elif self.internal_path:
+            links.append({
+                "url": "",
+                "internal_path": self.internal_path,
+                "label": self.link_label or "Open",
+            })
+        for pl in self.links.all():
+            if pl.link_url:
+                links.append({"url": pl.link_url, "internal_path": "", "label": pl.label or "Open link"})
+            elif pl.internal_path:
+                links.append({"url": "", "internal_path": pl.internal_path, "label": pl.label or "Open"})
+        return links
+
+
+class PostLink(models.Model):
+    """Extra link buttons on a feed post."""
+
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="links")
+    link_url = models.URLField(blank=True)
+    internal_path = models.CharField(max_length=200, blank=True)
+    label = models.CharField(max_length=80, default="Open link")
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
 
 
 class PostImage(models.Model):

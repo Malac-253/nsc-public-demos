@@ -88,7 +88,7 @@
           </span>
           <span class="exp-title-col">
             <div class="exp-title">{{ row.exp.title }}</div>
-            <div class="exp-meta">{{ row.exp.payer.shown_name }}{% if row.exp.payer.real_name_sub %} <span style="opacity:.75">({{ row.exp.payer.real_name_sub }})</span>{% endif %} · {{ row.exp.incurred_on|date:"M j"|default:row.exp.created_at|date:"M j" }}</div>
+            <div class="exp-meta">{{ row.exp.payer.roster_name }} · {{ row.exp.incurred_on|date:"M j"|default:row.exp.created_at|date:"M j" }}</div>
             {% if row.exp.tags or row.exp.is_pre_trip %}
             <div class="exp-tags">
               {% if row.exp.is_pre_trip %}<span class="pill bark" style="font-size:10px;padding:2px 6px">pre-trip</span>{% endif %}
@@ -115,7 +115,7 @@
   {% for row in balance_rows %}
   <div class="item-row">
     <a class="avatar-px" href="{% url 'member_link' row.member.id %}" style="background:{{ row.member.swatch }}18;border-color:{{ row.member.swatch }}44"><img src="{{ row.member.icon_url }}" alt=""></a>
-    <span>{{ row.member.shown_name }}{% if row.member.real_name_sub %}<br><span class="real-sub" style="font-size:10px;color:var(--muted);font-weight:600">{{ row.member.real_name_sub }}</span>{% endif %}</span>
+    <span>{{ row.member.roster_name }}</span>
     <span class="qty {% if row.balance >= 0 %}money-pos{% else %}money-neg{% endif %}" style="font-size:13.5px">
       {% if row.balance >= 0 %}+{% endif %}${{ row.balance|floatformat:2 }}
     </span>
@@ -123,6 +123,21 @@
   </div>
   {% endfor %}
   <a class="btn ghost small" href="{% url 'budget_backup' %}" style="margin-top:10px;width:100%" data-snd="rustle">Download backup (.json)</a>
+</div>
+{% endif %}
+
+{% if me.role == 'admin' and expense_rows %}
+<div class="card" style="border-color:var(--burgundy-soft)">
+  <h2><img src="{% static 'img/icons/bark.png' %}" alt="">Reset expenses <span class="sub">one-time cleanup</span></h2>
+  <p class="muted" style="font-size:13px;margin-bottom:10px">Remove every expense on this trip so you can enter real numbers. This cannot be undone — download a backup first if you want a copy.</p>
+  <form method="post" onsubmit="return confirm('Delete ALL expenses on this trip?')">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="clear_all_expenses">
+    <label>Type <strong>DELETE ALL</strong> to confirm</label>
+    <input type="text" name="confirm" placeholder="DELETE ALL" autocomplete="off">
+    <button class="btn danger small" type="submit" style="margin-top:10px" data-snd="snap">Wipe all expenses</button>
+  </form>
+  <p class="muted" style="font-size:11px;margin-top:8px">Or set env var <code>CLEAR_EXPENSES_ONCE=1</code> on Render for one deploy, then remove it.</p>
 </div>
 {% endif %}
 {% endblock %}

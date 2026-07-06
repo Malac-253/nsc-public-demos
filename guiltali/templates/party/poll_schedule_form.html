@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ form_title }}{% endblock %}
+{% block content %}
+<a href="{% url 'poll_schedule' %}" class="muted" style="font-size:12.5px" data-snd="rustle">← Scheduled polls</a>
+
+<div class="card wood" style="margin-top:8px">
+  <h2><img src="{% static 'img/icons/lantern.png' %}" alt="">{{ form_title }}</h2>
+  <form method="post">
+    {% csrf_token %}
+    {% if poll %}<input type="hidden" name="action" value="save">{% endif %}
+    <label>Question</label>
+    <input type="text" name="question" maxlength="300" required
+      value="{% if poll %}{{ poll.question }}{% endif %}"
+      placeholder="e.g. What do we eat this morning?">
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
+      <input type="checkbox" name="two_stage" style="width:auto" {% if poll and poll.two_stage %}checked{% endif %}
+        onchange="document.getElementById('opt-block').hidden = this.checked">
+      Two-step poll — suggest first, then vote
+    </label>
+    <div id="opt-block" {% if poll and poll.two_stage %}hidden{% endif %}>
+      <label>Options (one per line)</label>
+      <textarea name="options" rows="4" placeholder="Option one&#10;Option two">{% if options_text %}{{ options_text }}{% endif %}</textarea>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
+      <input type="checkbox" name="multiple_choice" style="width:auto" {% if poll and poll.multiple_choice %}checked{% endif %}> Allow multiple picks
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0">
+      <input type="checkbox" name="anonymous" style="width:auto" {% if poll and poll.anonymous %}checked{% endif %}> Hide who voted
+    </label>
+    <label>Goes live at</label>
+    <input type="datetime-local" name="opens_at" required
+      value="{% if poll and poll.opens_at %}{{ poll.opens_at|date:'Y-m-d' }}T{{ poll.opens_at|date:'H:i' }}{% endif %}">
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;margin-top:8px">
+      <input type="checkbox" name="repeat_daily" style="width:auto" {% if poll and poll.repeat_daily %}checked{% endif %}>
+      Repeat every day at this time until the trip ends
+    </label>
+    <label>Closes</label>
+    <select name="close_mode" id="close-mode" onchange="document.getElementById('custom-close').hidden = this.value !== 'custom'">
+      <option value="trip_end" selected>2 days after the trip ends (default)</option>
+      <option value="hour">1 hour from when it goes live</option>
+      <option value="custom">Pick a date &amp; time</option>
+      <option value="none">Never — I'll close it manually</option>
+    </select>
+    <input type="datetime-local" name="closes_at" id="custom-close" hidden>
+    <button class="btn" type="submit" style="width:100%;margin-top:14px">{{ submit_label }}</button>
+  </form>
+
+  {% if poll %}
+  <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
+    <h3 style="font-size:13px;font-weight:800;margin-bottom:8px">Add another time slot</h3>
+    <p class="muted" style="font-size:12px;margin-bottom:8px">Same question &amp; options, different go-live time (e.g. another morning).</p>
+    <form method="post" class="formrow" style="align-items:flex-end">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_time">
+      <div style="flex:1"><label style="margin-top:0">New go-live time</label>
+        <input type="datetime-local" name="new_opens_at" required></div>
+      <button class="btn brown small" type="submit" data-snd="snap">Add slot</button>
+    </form>
+    <form method="post" style="margin-top:12px" onsubmit="return confirm('Remove this scheduled poll?')">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete">
+      <button class="btn danger small" type="submit" data-snd="snap">Delete schedule</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -133,16 +133,31 @@ r = c.get("/budget/settle/")
 check("settle shows plan", r.status_code == 200 and (b"pays" in r.content or b"Everyone's balance" in r.content))
 
 # feed: comment + new post + poll two-stage rules
-from party.models import Post
+from party.models import Post, Poll, PollOption, PostReaction, Membership as M
 post = Post.objects.filter(trip=trip).first()
+if not post:
+    malachi_m = M.objects.get(party=trip.party, user__username="malachi")
+    post = Post.objects.create(trip=trip, author=malachi_m, kind=Post.KIND_BLAST, title="Smoke anchor", text="seed")
 r = c.post("/feed/", {"action": "comment", "post_id": post.id, "text": "smoke comment"})
 check("comment posts", r.status_code == 302)
 r = c.post("/feed/new/", {"what": "post", "kind": "blast", "title": "Smoke post",
                           "text": "hello woods", "bg_color": "#eef4e8",
-                          "link_url": "", "link_label": "", "suggested_by_note": ""})
+                          "link_url": "", "link_label": "", "link_internal": "",
+                          "suggested_by_note": ""})
 check("new post", r.status_code == 302)
+from party.models import Notification
+check("new post notifies others",
+      Notification.objects.filter(trip=trip, text__icontains="Smoke post").exists())
 
 poll2 = Poll.objects.filter(trip=trip, two_stage=True).first()
+if not poll2:
+    malachi_m = M.objects.get(party=trip.party, user__username="malachi")
+    poll2 = Poll.objects.create(
+        trip=trip, author=malachi_m, question="Smoke two-stage poll",
+        two_stage=True, stage=Poll.STAGE_SUGGEST,
+    )
+    PollOption.objects.create(poll=poll2, text="Option A", order=0, suggested_by=malachi_m)
+    PollOption.objects.create(poll=poll2, text="Option B", order=1, suggested_by=malachi_m)
 if poll2.stage != Poll.STAGE_SUGGEST:
     poll2.stage = Poll.STAGE_SUGGEST
     poll2.save(update_fields=["stage"])
@@ -179,6 +194,47 @@ check("kayla blocked from editing others",
 r = c.get(f"/feed/?member={km.id}")
 check("member-filtered feed", r.status_code == 200 and b"Showing" in r.content)
 
+# incremental feed chunks
+newest = Post.objects.filter(trip=trip, archived=False).order_by("-id").first()
+if newest:
+    r = c.get(f"/feed/more/?before={newest.id + 1}")
+    check("feed more endpoint", r.status_code == 200 and b'"html"' in r.content)
+
+malachi_m = Membership.objects.get(party=trip.party, user__username="malachi")
+if not malachi_m.nickname:
+    malachi_m.nickname = "The Quartermaster"
+    malachi_m.save(update_fields=["nickname"])
+malachi_m.alias = malachi_m.nickname
+malachi_m.save(update_fields=["alias"])
+check("feed alias dedupes nickname", malachi_m.feed_alias == "")
+check("roster name pairs nickname with real name",
+      malachi_m.roster_name == (
+          f"{malachi_m.nickname} ({malachi_m.display_name})" if malachi_m.nickname else malachi_m.display_name
+      ))
+
+r = c.get("/polls/scheduled/")
+check("poll schedule page", r.status_code == 200 and b"Scheduled polls" in r.content)
+
+edit_post = Post.objects.filter(trip=trip, poll__isnull=True).first()
+r = c.get(f"/feed/edit/{edit_post.id}/")
+check("feed edit page", r.status_code == 200 and b"Edit post" in r.content)
+
+from django.utils import timezone
+import datetime as dt
+future = timezone.now() + dt.timedelta(days=2)
+malachi_m = M.objects.get(party=trip.party, user__username="malachi")
+sched = Poll.objects.create(
+    trip=trip, author=malachi_m, question="Scheduled smoke poll",
+    opens_at=future, stage=Poll.STAGE_VOTE,
+)
+PollOption.objects.create(poll=sched, text="A", order=0, suggested_by=malachi_m)
+check("scheduled poll not on feed yet", not Post.objects.filter(poll=sched).exists())
+sched.opens_at = timezone.now() - dt.timedelta(minutes=1)
+sched.save(update_fields=["opens_at"])
+import subprocess, sys
+subprocess.check_call([sys.executable, "manage.py", "publish_scheduled_polls"], cwd=".")
+check("scheduled poll published", Post.objects.filter(poll=sched).exists())
+
 # --- new-this-session features ---
 r = c.get("/experience/")
 check("experience page renders", r.status_code == 200 and b"Berkeley Springs" in r.content)
@@ -191,10 +247,16 @@ r = c.get("/budget/charts/")
 check("budget charts renders", r.status_code == 200 and b"person" in r.content.lower())
 
 from party.models import PostReaction
-squire_post = Post.objects.filter(trip=trip, author__is_ai=True).first()
-check("AI squire post seeded", squire_post is not None)
+squire = M.objects.get(party=trip.party, user__username="squire")
+squire_post = Post.objects.filter(trip=trip, author=squire).first()
+if not squire_post:
+    squire_post = Post.objects.create(
+        trip=trip, author=squire, kind=Post.KIND_SUGGESTION,
+        title="Smoke squire post", text="for reaction test",
+    )
+check("AI squire post available", squire_post is not None)
 if squire_post:
-    malachi_m = Membership.objects.get(party=trip.party, user__username="malachi")
+    malachi_m = M.objects.get(party=trip.party, user__username="malachi")
     PostReaction.objects.filter(post=squire_post, member=malachi_m, emoji="\U0001F525").delete()
     r = c.post("/feed/react/", {"post_id": squire_post.id, "emoji": "\U0001F525"})
     check("react to post", r.status_code in (200, 302))
@@ -284,6 +346,14 @@ check("info page link saved", page.link_url == "https://example.com/recipe")
 # --- random picker tool renders ---
 r = c.get("/info/tools/picker/")
 check("picker tool renders", r.status_code == 200 and b"Spin" in r.content)
+
+if Expense.objects.filter(trip=trip).exists():
+    r = c.post("/budget/", {"action": "clear_all_expenses", "confirm": "DELETE ALL"})
+    check("admin can clear all expenses", r.status_code == 302 and not Expense.objects.filter(trip=trip).exists())
+
+import subprocess, sys
+subprocess.check_call([sys.executable, "manage.py", "clear_smoke_artifacts"], cwd=".")
+check("smoke artifacts cleaned", not TaskList.objects.filter(trip=trip, name__istartswith="Smoke").exists())
 
 print(f"\n{PASS} passed, {FAIL} failed")
 raise SystemExit(1 if FAIL else 0)
