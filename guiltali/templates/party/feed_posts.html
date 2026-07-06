@@ -7,7 +7,7 @@
     <div>
       <div class="nm">{{ p.author.shown_name }}{% if p.author.feed_alias %} <span class="muted" style="font-weight:600;font-size:11px">· {{ p.author.feed_alias }}</span>{% endif %}</div>
       {% if p.author.real_name_sub %}<div class="real-sub">{{ p.author.real_name_sub }}</div>{% endif %}
-      <div class="tm">{{ p.created_at|timesince }} ago{% if p.event %} · {{ p.event.name }}{% endif %}</div>
+      <div class="tm">{{ p.created_at|date:"M j, g:i A" }} · {{ p.created_at|timesince }} ago{% if p.event %} · {{ p.event.name }}{% endif %}</div>
     </div>
     <span class="pill kind-tag {% if p.kind == 'suggestion' %}amber{% elif p.kind == 'photo' %}bark{% elif p.kind == 'poll' %}red{% endif %}">{{ p.get_kind_display }}</span>
   </div>
@@ -74,7 +74,7 @@
 
     <div class="react-wrap" data-post-id="{{ p.id }}">
       <span class="react-summary">
-        {% for r in p.reaction_summary %}<span class="pill" style="font-size:11px">{{ r.emoji }} {{ r.count }}</span>{% endfor %}
+        {% for r in p.reaction_summary %}<span class="react-pill pill"{% if r.names %} title="{{ r.names|join:', ' }}"{% endif %}><span class="react-emoji">{{ r.emoji }}</span><span class="react-count">{{ r.count }}</span></span>{% endfor %}
       </span>
       <button type="button" class="react-toggle" data-react-toggle data-snd="snap">+ react</button>
       <div class="react-picker" data-react-picker>

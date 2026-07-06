@@ -25,16 +25,17 @@
   <div class="divider"></div>
   <p class="muted" style="font-size:12.5px;margin-bottom:8px"><em>{{ exp.split_note }}</em></p>
   {% if my_share is not None %}
-  <p style="font-size:13.5px;margin-bottom:10px">Your share: <strong>${{ my_share }}</strong>
-    {% if my_share_note %}<span class="muted" style="display:block;font-size:12px;margin-top:4px;font-style:italic">{{ my_share_note }}</span>{% endif %}
-  </p>
+  <p style="font-size:13.5px;margin-bottom:10px">Your share: <strong>${{ my_share }}</strong></p>
   {% elif excluded %}
   <p class="muted" style="font-size:13px;margin-bottom:10px">You're not on this one.</p>
   {% endif %}
   {% for r in share_rows %}
-  <div class="item-row" {% if r.excluded %}style="opacity:.55"{% endif %}>
+  <div class="item-row" {% if r.excluded %}style="opacity:.55"{% elif r.member.id == me.id %}style="background:var(--green-soft);border-radius:10px;padding:6px 8px;margin:2px -4px"{% endif %}>
     <span class="avatar-px" style="width:28px;height:28px;background:{{ r.member.swatch }}22"><img src="{{ r.member.icon_url }}" style="width:18px;height:18px" alt=""></span>
-    <span>{{ r.member.shown_name }}{% if r.excluded %} <span class="muted">(excluded)</span>{% endif %}</span>
+    <span style="flex:1;min-width:0">
+      {{ r.member.shown_name }}{% if r.excluded %} <span class="muted">(excluded)</span>{% elif r.member.id == me.id %} <span class="muted">(you)</span>{% endif %}
+      {% if r.note %}<span class="muted" style="display:block;font-size:11.5px;margin-top:3px;font-style:italic;line-height:1.35">{{ r.note }}</span>{% endif %}
+    </span>
     <span class="qty" style="font-size:13.5px;font-weight:700;color:var(--ink)">${{ r.amount }}</span>
   </div>
   {% endfor %}

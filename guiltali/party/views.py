@@ -656,7 +656,7 @@ def budget_detail(request, expense_id: int):
     my_share_obj = next((s for s in exp.shares.all() if s.member_id == me.id), None)
     share_rows = sorted(
         (
-            {"member": s.member, "amount": s.amount, "excluded": s.excluded}
+            {"member": s.member, "amount": s.amount, "excluded": s.excluded, "note": s.note}
             for s in exp.shares.all()
         ),
         key=lambda r: (r["excluded"], -r["amount"]),
@@ -665,7 +665,6 @@ def budget_detail(request, expense_id: int):
         "exp": exp,
         "share_rows": share_rows,
         "my_share": my_share_obj.amount if my_share_obj and not my_share_obj.excluded else None,
-        "my_share_note": my_share_obj.note if my_share_obj and not my_share_obj.excluded else "",
         "excluded": my_share_obj.excluded if my_share_obj else False,
         "tag_labels": [TAG_MAP.get(t, t) for t in (exp.tags or [])],
         "can_edit": _can_edit_expense(me, exp),
@@ -1294,7 +1293,8 @@ def _feed_posts_queryset(trip, *, member_filter: str | None = None, kind: str = 
     from django.db.models import Q
 
     posts = trip.posts.filter(archived=False).select_related("author", "poll").prefetch_related(
-        "comments__author", "extra_images", "videos", "links", "poll__options__votes", "reactions",
+        "comments__author", "extra_images", "videos", "links", "poll__options__votes",
+        "reactions__member",
     ).order_by("-created_at", "-id")
     filtered_member = None
     if member_filter:
@@ -1305,16 +1305,24 @@ def _feed_posts_queryset(trip, *, member_filter: str | None = None, kind: str = 
     return posts, filtered_member
 
 
+def _reaction_summary_rows(reactions) -> list[dict]:
+    """[{emoji, count, names}, ...] ordered by count desc."""
+    by_emoji: dict[str, list[str]] = {}
+    for r in reactions:
+        by_emoji.setdefault(r.emoji, []).append(r.member.shown_name)
+    return sorted(
+        [{"emoji": e, "count": len(names), "names": names} for e, names in by_emoji.items()],
+        key=lambda row: -row["count"],
+    )
+
+
 def _enrich_feed_posts(posts, me, trip, filtered_member=None):
     member_count = trip.party.memberships.exclude(is_ai=True).count()
     posts = list(posts)
     for post in posts:
         all_reactions = list(post.reactions.all())
         post.my_reaction_set = {r.emoji for r in all_reactions if r.member_id == me.id}
-        counts: dict[str, int] = {}
-        for r in all_reactions:
-            counts[r.emoji] = counts.get(r.emoji, 0) + 1
-        post.reaction_counts = counts
+        post.reaction_summary = _reaction_summary_rows(all_reactions)
         if post.poll_id:
             voter_ids = post.poll.voter_ids()
             post.poll_total_members = member_count
@@ -1689,7 +1697,10 @@ def react(request):
     me = _me(request, trip)
     if request.method != "POST":
         raise Http404
-    post = get_object_or_404(Post, pk=request.POST.get("post_id"), trip=trip)
+    post = get_object_or_404(
+        Post.objects.prefetch_related("reactions__member"),
+        pk=request.POST.get("post_id"), trip=trip,
+    )
     emoji = request.POST.get("emoji", "")
     if emoji not in dict(PostReaction.EMOJI_CHOICES):
         raise Http404
@@ -1709,7 +1720,7 @@ def react(request):
         return JsonResponse({
             "mine": mine,
             "emoji": emoji,
-            "summary": post.reaction_summary(),
+            "summary": _reaction_summary_rows(list(post.reactions.all())),
         })
     return _redirect_feed(request, post.id)
 

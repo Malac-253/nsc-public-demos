@@ -80,8 +80,8 @@ body::before{content:"";position:fixed;inset:0;z-index:2;pointer-events:none;
     radial-gradient(ellipse 90% 70% at 50% 45%,transparent 35%,rgba(61,74,66,.05) 100%),
     radial-gradient(ellipse 120% 80% at 50% 100%,rgba(107,79,58,.06),transparent 55%);
   opacity:.55}
-/* drifting leaves — behind cards & chrome so scrolling stays smooth */
-.particle-rain{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+/* drifting leaves — on top of page content (pointer-events:none) */
+.particle-rain{position:fixed;inset:0;z-index:85;pointer-events:none;overflow:hidden}
 .particle,.particle-dot{position:absolute;pointer-events:none;top:-40px}
 .particle{font-size:16px;opacity:.58;animation-name:fallDrift;
   animation-timing-function:linear;animation-iteration-count:infinite;
