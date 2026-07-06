@@ -2,14 +2,22 @@
 {% load static %}
 {% block title %}The Stay{% endblock %}
 {% block extra_css %}
-.gallery{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;border-radius:14px;
-  margin-bottom:6px;-webkit-overflow-scrolling:touch}
-.gallery .ph{flex:none;width:86%;scroll-snap-align:center;border-radius:14px;overflow:hidden;
-  border:3px solid #3f2d15;position:relative;aspect-ratio:16/10;background:#e8e0cc}
-.gallery .ph img{width:100%;height:100%;object-fit:cover;display:block}
-.gallery .ph .cap{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:11.5px;
+.gal-wrap{position:relative;margin-bottom:6px}
+.gal-viewport{border-radius:14px;border:3px solid #3f2d15;overflow:hidden;
+  aspect-ratio:16/10;background:#e8e0cc;position:relative}
+.gal-slide{position:absolute;inset:0;opacity:0;transition:opacity .45s ease;pointer-events:none}
+.gal-slide.active{opacity:1;pointer-events:auto;z-index:1}
+.gal-slide img{width:100%;height:100%;object-fit:cover;display:block}
+.gal-slide .cap{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:11.5px;
   color:#f6eed9;background:linear-gradient(180deg,transparent,rgba(24,15,4,.8))}
-.dots{display:flex;justify-content:center;gap:5px;margin-bottom:12px}
+.gal-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:3;
+  width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,.85);
+  background:rgba(24,15,4,.55);color:#fff;font-size:26px;font-weight:800;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0 0 2px}
+.gal-arrow:active{background:rgba(24,15,4,.75)}
+.gal-prev{left:10px}
+.gal-next{right:10px}
+.dots{display:flex;justify-content:center;gap:5px;margin-bottom:12px;flex-wrap:wrap}
 .dots span{width:7px;height:7px;border-radius:50%;background:#c8b28c;transition:transform .2s ease,background .2s ease}
 .dots span.on{background:var(--green);transform:scale(1.35)}
 .fact-row{display:flex;align-items:flex-start;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:13.5px}
@@ -21,16 +29,26 @@
 {% endblock %}
 {% block content %}
 
-<div class="gallery" id="gal" data-slider>
-  {% for ph in photos %}
-  <div class="ph">
-    <img src="{{ ph.url }}" alt="{{ ph.caption }}" loading="lazy">
-    {% if ph.caption %}<div class="cap">{{ ph.caption }}</div>{% endif %}
+{% if photos %}
+<div class="gal-wrap" id="gal">
+  {% if photos|length > 1 %}
+  <button type="button" class="gal-arrow gal-prev" aria-label="Previous photo" data-snd="snap">&#8249;</button>
+  {% endif %}
+  <div class="gal-viewport">
+    {% for ph in photos %}
+    <div class="gal-slide{% if forloop.first %} active{% endif %}">
+      <img src="{{ ph.url }}" alt="{{ ph.caption|default:'Stay photo' }}" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+      {% if ph.caption %}<div class="cap">{{ ph.caption }}</div>{% endif %}
+    </div>
+    {% endfor %}
   </div>
-  {% endfor %}
+  {% if photos|length > 1 %}
+  <button type="button" class="gal-arrow gal-next" aria-label="Next photo" data-snd="snap">&#8250;</button>
+  {% endif %}
 </div>
 {% if photos|length > 1 %}
 <div class="dots" id="gal-dots">{% for ph in photos %}<span class="{% if forloop.first %}on{% endif %}"></span>{% endfor %}</div>
+{% endif %}
 {% endif %}
 
 <div class="card wood">
@@ -105,13 +123,46 @@ function copyAddr(btn) {
 }
 (function () {
   const gal = document.getElementById("gal");
+  if (!gal) return;
+  const slides = Array.from(gal.querySelectorAll(".gal-slide"));
+  if (slides.length <= 1) return;
+
   const dots = document.getElementById("gal-dots");
-  if (!gal || !dots) return;
-  const dotEls = Array.from(dots.children);
-  gal.addEventListener("scroll", () => {
-    const idx = Math.round(gal.scrollLeft / gal.clientWidth);
+  const dotEls = dots ? Array.from(dots.children) : [];
+  const AUTO_MS = 3000;
+  let idx = 0;
+  let timer = null;
+
+  function show(nextIdx) {
+    idx = (nextIdx + slides.length) % slides.length;
+    slides.forEach((s, i) => s.classList.toggle("active", i === idx));
     dotEls.forEach((d, i) => d.classList.toggle("on", i === idx));
-  }, { passive: true });
+  }
+
+  function next() { show(idx + 1); }
+  function prev() { show(idx - 1); }
+
+  function startAuto() {
+    stopAuto();
+    timer = setInterval(next, AUTO_MS);
+  }
+  function stopAuto() {
+    if (timer) clearInterval(timer);
+    timer = null;
+  }
+  function bumpAuto() {
+    stopAuto();
+    startAuto();
+  }
+
+  gal.querySelector(".gal-next")?.addEventListener("click", () => { next(); bumpAuto(); });
+  gal.querySelector(".gal-prev")?.addEventListener("click", () => { prev(); bumpAuto(); });
+  gal.addEventListener("mouseenter", stopAuto);
+  gal.addEventListener("mouseleave", startAuto);
+  gal.addEventListener("touchstart", stopAuto, { passive: true });
+  gal.addEventListener("touchend", () => setTimeout(startAuto, AUTO_MS), { passive: true });
+
+  startAuto();
 })();
 </script>
 {% endblock %}

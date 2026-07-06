@@ -9,6 +9,7 @@ from __future__ import annotations
 import datetime as dt
 import secrets
 from decimal import Decimal
+from pathlib import Path
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
@@ -325,18 +326,17 @@ class Command(BaseCommand):
         trip.area_guide = AREA_GUIDE
         trip.save()
 
-        # Stay gallery (main picture + gallery, Airbnb-style)
-        for i, (path, caption, cover) in enumerate([
-            ("img/brock-cabin.jpg", "Cabin in the pines — sleeps 13", True),
-            ("img/stay-pickleball.jpg", "Private pickleball court", False),
-            ("img/stay-spa.jpg", "Spa suite with forest views", False),
-            ("img/stay-outdoor-kitchen.jpg", "Outdoor kitchen & patio", False),
-            ("img/brock-waterfall.jpg", "Waterfall trail nearby", False),
-            ("img/brock-campfire.jpg", "Fire pit for camp nights", False),
-        ]):
-            TripPhoto.objects.get_or_create(
-                trip=trip, static_path=path,
-                defaults={"caption": caption, "is_cover": cover, "order": i},
+        # Stay gallery — real Airbnb photos from static/img/real
+        real_dir = Path(__file__).resolve().parents[3] / "static" / "img" / "real"
+        stay_paths = sorted(f"img/real/{p.name}" for p in real_dir.glob("*.jpg"))
+        trip.photos.all().delete()
+        for i, path in enumerate(stay_paths):
+            TripPhoto.objects.create(
+                trip=trip,
+                static_path=path,
+                caption="",
+                is_cover=(i == 0),
+                order=i,
             )
 
         passwords: list[tuple[str, str]] = []
