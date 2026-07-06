@@ -7,9 +7,10 @@
   border:2px solid var(--line);background:#fff;color:var(--ink)}
 .chips a.on{background:var(--green);border-color:var(--green-deep);color:#fff}
 .post{border:2px solid var(--line);border-radius:15px;box-shadow:var(--shadow);
-  margin-bottom:14px;overflow:hidden;background:var(--card);
+  margin-bottom:14px;overflow:visible;background:var(--card);
   transition:border-color .2s ease,box-shadow .2s ease;
   scroll-margin-top:calc(var(--nav-h, 70px) + 14px)}
+.post:has(.react-picker.open){position:relative;z-index:30}
 .post:hover,.post:focus-within{border-color:var(--green);box-shadow:0 0 0 3px rgba(47,125,79,.14),var(--shadow)}
 .post .head{display:flex;align-items:center;gap:9px;padding:11px 13px 0}
 .post .head .nm{font-weight:800;font-size:13.5px}
@@ -18,7 +19,8 @@
 .post .kind-tag{margin-left:auto}
 .copy-title{border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px;
   padding:2px 4px;margin-left:5px;vertical-align:middle}
-.slider{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:0;-webkit-overflow-scrolling:touch}
+.slider{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;gap:0;-webkit-overflow-scrolling:touch;
+  border-radius:0 0 13px 13px}
 .slider .sl{flex:none;width:100%;scroll-snap-align:center;position:relative}
 .slider img,.slider video{width:100%;display:block;max-height:340px;object-fit:cover;background:#000}
 .slider .dl{position:absolute;right:10px;bottom:10px;background:rgba(24,15,4,.65);color:#fff;
@@ -26,7 +28,15 @@
 .slider-dots{display:flex;justify-content:center;gap:4px;padding:6px 0 0}
 .slider-dots i{width:6px;height:6px;border-radius:50%;background:#c8b28c;transition:background .2s ease,transform .2s ease}
 .slider-dots i.on{background:var(--green);transform:scale(1.3)}
-.react-wrap{margin-top:9px}
+.react-wrap{margin-top:9px;position:relative;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;z-index:1}
+.react-wrap:has(.react-picker.open){z-index:35}
+.react-toggle{border:1px solid var(--line);background:var(--gray-soft);border-radius:999px;
+  padding:4px 10px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
+.react-picker{display:none;gap:5px;background:var(--card);border:1px solid var(--line);
+  border-radius:999px;padding:6px 8px;box-shadow:var(--shadow);
+  position:absolute;left:0;bottom:calc(100% + 6px);z-index:40;flex-wrap:nowrap;white-space:nowrap}
+.react-picker.open{display:flex;animation:pageIn .12s ease both}
+.react-picker button{border:none;background:none;font-size:16px;cursor:pointer;padding:2px 4px}
 .react-picker button.mine{background:var(--green-soft);border-radius:8px}
 .poll-status{font-size:11.5px;font-weight:700;margin-top:4px}
 .poll-status .ok{color:var(--green-deep)}
@@ -67,13 +77,6 @@
 @keyframes blinkHi{0%,100%{background:transparent}50%{background:var(--amber-soft)}}
 .blink-post{animation:blinkHi 1.1s ease-in-out 3}
 .blink-cmt{animation:blinkHi 1.1s ease-in-out 3;border-radius:8px;padding:4px 6px !important;margin-left:-6px !important}
-.react-wrap{position:relative;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
-.react-toggle{border:1px solid var(--line);background:var(--gray-soft);border-radius:999px;
-  padding:4px 10px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
-.react-picker{display:none;gap:5px;background:var(--card);border:1px solid var(--line);
-  border-radius:999px;padding:4px 6px;box-shadow:var(--shadow)}
-.react-picker.open{display:flex;animation:pageIn .12s ease both}
-.react-picker button{border:none;background:none;font-size:16px;cursor:pointer;padding:2px 4px}
 {% endblock %}
 {% block content %}
 

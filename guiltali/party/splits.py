@@ -116,12 +116,11 @@ def split_malachi_lodging(expense: Expense, members: list[Membership]) -> tuple[
     shares = _apply_eden_ethan_surcharge(
         shares, premium_ids, other_ids, _LODGING_EDEN_ETHAN_SURCHARGE,
     )
-    s = _LODGING_EDEN_ETHAN_SURCHARGE
     p = int(_LODGING_BATHROOM_PREMIUM * 100 - 100)
     return shares, (
         "Malachi's lodging split: nights present × room size (2-bed baseline, "
         f"more roommates = less per person), flattened, {p}% bath premium for "
-        f"Eden & Ethan, plus ${s} from each other person toward their room."
+        "Eden & Ethan."
     )
 
 

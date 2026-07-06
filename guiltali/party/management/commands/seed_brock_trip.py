@@ -268,15 +268,6 @@ AREA_GUIDE = (
     "- Lot 12 Public House downtown — the go-to dinner-out spot if nobody wants to cook"
 )
 
-# (author_username, caption, image_filename)
-BOARD_PHOTOS = [
-    ("sabah", "Golden hour at the cabin — forecast keeps saying rain but look at this",
-     "brock-cabin.jpg"),
-    ("collin", "Made it to the top of Devil's Overlook. View was worth every one of "
-               "those 2,100 ft", "brock-waterfall.jpg"),
-    ("eden", "Night one, string lights up, everyone accounted for", "brock-campfire.jpg"),
-]
-
 
 class Command(BaseCommand):
     help = "Seed Brock Trip 2026 demo data (idempotent)."
