@@ -363,6 +363,8 @@ class Expense(models.Model):
     SPLIT_PERCENT = "percent"
     SPLIT_SHARES = "shares"
     SPLIT_PRESENT = "present"
+    SPLIT_MALACHI = "malachi"
+    SPLIT_LODGING = "lodging"  # legacy alias → SPLIT_MALACHI
     SPLIT_CUSTOM = "custom"
     SPLIT_ADJUST = "adjust"
     SPLIT_CHOICES = [
@@ -370,6 +372,7 @@ class Expense(models.Model):
         (SPLIT_PERCENT, "Split by percentages"),
         (SPLIT_SHARES, "Split by shares"),
         (SPLIT_PRESENT, "Split by nights present"),
+        (SPLIT_MALACHI, "Malachi's lodging split"),
         (SPLIT_CUSTOM, "Exact amounts"),
         (SPLIT_ADJUST, "Split with adjustments"),
     ]

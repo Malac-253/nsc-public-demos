@@ -11,6 +11,17 @@ from .models import Attendance, Expense, Membership, Trip
 
 CENT = Decimal("0.01")
 
+# Malachi's lodging split — tunable weights for the Brock Airbnb.
+# 1. nights present (from attendance)
+# 2. room crowding: weight × (2 ÷ room capacity) — 2-bed is baseline
+# 3. private bath: ×1.15 for Eden & Ethan's room
+# 4. flatten: raise weight to this power (<1 compresses high/low spread)
+# 5. shift this $ from each other person to the private-bath room
+_LODGING_BASELINE_CAPACITY = Decimal("2")
+_LODGING_BATHROOM_PREMIUM = Decimal("1.15")
+_LODGING_FLATTEN_POWER = 0.86
+_LODGING_EDEN_ETHAN_SURCHARGE = Decimal("2.65")
+
 
 def _spread(total: Decimal, weights: dict[int, Decimal]) -> dict[int, Decimal]:
     """Distribute `total` across ids proportionally to weights, cent-exact."""
@@ -33,6 +44,88 @@ def split_equal(expense: Expense, members: list[Membership]) -> tuple[dict[int, 
     return _spread(expense.amount, weights), (
         f"Split equally between {len(members)} people."
     )
+
+
+# Two-person room is the baseline; bigger rooms pay less per person per night.
+def _flatten_weight(raw: Decimal) -> Decimal:
+    """Compress high/low weights toward the middle (power < 1)."""
+    if _LODGING_FLATTEN_POWER >= 1:
+        return raw
+    return Decimal(str(float(raw) ** _LODGING_FLATTEN_POWER))
+
+
+def _apply_eden_ethan_surcharge(
+    shares: dict[int, Decimal],
+    premium_ids: list[int],
+    other_ids: list[int],
+    per_other: Decimal,
+) -> dict[int, Decimal]:
+    """Shift a fixed amount from everyone else to Eden & Ethan (private bath room)."""
+    if not premium_ids or not other_ids or per_other <= 0:
+        return shares
+    pool = per_other * len(other_ids)
+    for mid in other_ids:
+        shares[mid] = (shares[mid] - per_other).quantize(CENT)
+    running = Decimal("0")
+    for pid in premium_ids[:-1]:
+        extra = (pool / len(premium_ids)).quantize(CENT, rounding=ROUND_HALF_UP)
+        shares[pid] = (shares[pid] + extra).quantize(CENT)
+        running += extra
+    shares[premium_ids[-1]] = (shares[premium_ids[-1]] + pool - running).quantize(CENT)
+    return shares
+
+
+def _lodging_room_for(member: Membership, trip: Trip) -> tuple[int, bool]:
+    """Return (room capacity, private_bath) for a member on this trip."""
+    from .models import RoomClaim
+
+    claim = (
+        RoomClaim.objects.filter(member=member, room__trip=trip)
+        .select_related("room")
+        .first()
+    )
+    if not claim:
+        return 2, False
+    room = claim.room
+    private_bath = "eden" in room.name.lower()
+    return max(room.capacity, 1), private_bath
+
+
+def split_malachi_lodging(expense: Expense, members: list[Membership]) -> tuple[dict[int, Decimal], str]:
+    """Malachi's lodging split for shared rentals (Brock Airbnb).
+
+    Weight = nights × (2 ÷ room capacity) × bath premium, then flattened.
+    A fixed per-person amount from everyone else goes to the private-bath room.
+    """
+    trip = expense.trip
+    att = {a.member_id: a for a in Attendance.objects.filter(trip=trip)}
+    total_nights = max((trip.end_date - trip.start_date).days, 1)
+    premium_ids: list[int] = []
+    weights: dict[int, Decimal] = {}
+    for m in members:
+        a = att.get(m.id)
+        nights = Decimal(max(a.nights() if a else total_nights, 0))
+        cap, private_bath = _lodging_room_for(m, trip)
+        room_factor = _LODGING_BASELINE_CAPACITY / Decimal(cap)
+        premium = _LODGING_BATHROOM_PREMIUM if private_bath else Decimal("1")
+        if private_bath:
+            premium_ids.append(m.id)
+        weights[m.id] = _flatten_weight(nights * room_factor * premium)
+    other_ids = [m.id for m in members if m.id not in premium_ids]
+    shares = _spread(expense.amount, weights)
+    shares = _apply_eden_ethan_surcharge(
+        shares, premium_ids, other_ids, _LODGING_EDEN_ETHAN_SURCHARGE,
+    )
+    s = _LODGING_EDEN_ETHAN_SURCHARGE
+    p = int(_LODGING_BATHROOM_PREMIUM * 100 - 100)
+    return shares, (
+        "Malachi's lodging split: nights present × room size (2-bed baseline, "
+        f"more roommates = less per person), flattened, {p}% bath premium for "
+        f"Eden & Ethan, plus ${s} from each other person toward their room."
+    )
+
+
+split_by_lodging = split_malachi_lodging  # backwards-compatible alias
 
 
 def split_by_nights(expense: Expense, members: list[Membership]) -> tuple[dict[int, Decimal], str]:
@@ -110,6 +203,8 @@ def split_custom(expense: Expense, members: list[Membership],
 ALGORITHMS = {
     Expense.SPLIT_EQUAL: split_equal,
     Expense.SPLIT_PRESENT: split_by_nights,
+    Expense.SPLIT_MALACHI: split_malachi_lodging,
+    Expense.SPLIT_LODGING: split_malachi_lodging,
 }
 
 
@@ -119,6 +214,8 @@ def preview_split(expense: Expense, members: list[Membership], method: str,
     percent / shares / custom / adjust methods."""
     if method == "rooms":
         method = Expense.SPLIT_EQUAL
+    if method in (Expense.SPLIT_LODGING, "lodging"):
+        method = Expense.SPLIT_MALACHI
     if method == Expense.SPLIT_PERCENT:
         return split_percent(expense, members, detail)
     if method == Expense.SPLIT_SHARES:

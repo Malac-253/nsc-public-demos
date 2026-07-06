@@ -193,9 +193,9 @@ ACTIVITIES = [
      "Everyone out by checkout time — see the Stay tab.", ""),
 ]
 
-# Demo seed no longer creates fake expenses — add real ones in the app (Budget → +).
-# To wipe existing demo expenses on Render: python manage.py clear_expenses
-EXPENSES: list[tuple] = []
+# Brock Airbnb — sole seeded expense; re-synced every deploy via seed_brock_trip.
+AIRBNB_TITLE = "Airbnb — Rock Gap Road"
+AIRBNB_AMOUNT = Decimal("2691.36")
 
 # Cooper's suggestions (from his texts) — posted on his behalf by Malachi
 COOPER_SUGGESTIONS = [
@@ -280,6 +280,36 @@ BOARD_PHOTOS = [
 
 class Command(BaseCommand):
     help = "Seed Brock Trip 2026 demo data (idempotent)."
+
+    def _seed_airbnb(self, trip, members: dict, member_list: list) -> None:
+        """Replace all trip expenses with the locked Brock Airbnb row.
+
+        Uses Malachi's lodging split so shares stay in sync with attendance
+        and room assignments on every deploy.
+        """
+        cleared, _ = Expense.objects.filter(trip=trip).delete()
+        if cleared:
+            self.stdout.write(f"Cleared {cleared} expense(s).")
+
+        exp = Expense.objects.create(
+            trip=trip,
+            payer=members["malachi"],
+            title=AIRBNB_TITLE,
+            amount=AIRBNB_AMOUNT,
+            incurred_on=trip.start_date + dt.timedelta(days=-14),
+            is_pre_trip=True,
+            split_method=Expense.SPLIT_MALACHI,
+            tags=["lodging"],
+            locked=True,
+        )
+        shares, note = preview_split(exp, member_list, Expense.SPLIT_MALACHI)
+        exp.split_note = note
+        exp.save(update_fields=["split_note"])
+        ExpenseShare.objects.bulk_create([
+            ExpenseShare(expense=exp, member_id=mid, amount=amt)
+            for mid, amt in shares.items()
+        ])
+        self.stdout.write(f"Seeded {AIRBNB_TITLE} (${AIRBNB_AMOUNT}, Malachi's split).")
 
     def handle(self, *args, **options):
         party, _ = Party.objects.get_or_create(
@@ -402,7 +432,7 @@ class Command(BaseCommand):
             arrive, depart, note = ATTENDANCE_OVERRIDES.get(
                 username, (trip.start_date, trip.end_date, ""),
             )
-            Attendance.objects.get_or_create(
+            Attendance.objects.update_or_create(
                 trip=trip, member=m,
                 defaults=dict(arrive=arrive, depart=depart, note=note),
             )
@@ -444,27 +474,7 @@ class Command(BaseCommand):
             )
 
         member_list = [m for m in members.values() if not m.is_ai]
-        for title, amount, payer_username, method, offset, is_pre_trip, tags in EXPENSES:
-            if Expense.objects.filter(trip=trip, title=title).exists():
-                Expense.objects.filter(trip=trip, title=title, tags=[]).update(tags=tags)
-                continue
-            exp = Expense.objects.create(
-                trip=trip,
-                payer=members[payer_username],
-                title=title,
-                amount=Decimal(amount),
-                incurred_on=trip.start_date + dt.timedelta(days=offset),
-                is_pre_trip=is_pre_trip,
-                split_method=method,
-                tags=tags,
-            )
-            shares, note = preview_split(exp, member_list, method)
-            exp.split_note = note
-            exp.save(update_fields=["split_note"])
-            ExpenseShare.objects.bulk_create([
-                ExpenseShare(expense=exp, member_id=mid, amount=amt)
-                for mid, amt in shares.items()
-            ]        )
+        self._seed_airbnb(trip, members, member_list)
 
         for section, items in GROCERY_SECTIONS.items():
             tl, created = TaskList.objects.get_or_create(
