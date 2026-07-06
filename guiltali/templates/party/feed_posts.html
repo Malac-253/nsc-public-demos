@@ -143,7 +143,16 @@
   <div class="comments">
     {% for c in p.comments.all %}
     <div class="cmt{% if c.is_highlighted %} blink-cmt{% endif %}">
-      <div class="cn"><a href="{% url 'member_link' c.author.id %}" style="display:contents;color:inherit"><img src="{{ c.author.icon_url }}" alt="" loading="lazy">{{ c.author.shown_name }}</a> <span class="ct">{{ c.created_at|timesince }} ago</span></div>
+      <div class="cn">
+        <a href="{% url 'member_link' c.author.id %}" class="cmt-who">
+          <img src="{{ c.author.icon_url }}" alt="" loading="lazy">
+          <span class="cmt-who-text">
+            <span class="cmt-nick">{{ c.author.shown_name }}</span>
+            {% if c.author.real_name_sub %}<span class="real-sub cmt-real">{{ c.author.real_name_sub }}</span>{% endif %}
+          </span>
+        </a>
+        <span class="ct">{{ c.created_at|timesince }} ago</span>
+      </div>
       <div class="cb">{{ c.text }}</div>
     </div>
     {% endfor %}
