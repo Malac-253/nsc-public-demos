@@ -1732,11 +1732,14 @@ def react(request):
                 trip, post.author, f"{me.shown_name} reacted {emoji} to your post.",
                 actor=me, link_path=f"{reverse('feed')}?member={post.author_id}",
             )
+    fresh_reactions = list(
+        PostReaction.objects.filter(post=post).select_related("member"),
+    )
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({
             "mine": mine,
             "emoji": emoji,
-            "summary": _reaction_summary_rows(list(post.reactions.all())),
+            "summary": _reaction_summary_rows(fresh_reactions),
         })
     return _redirect_feed(request, post.id)
 

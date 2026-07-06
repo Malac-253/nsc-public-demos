@@ -252,21 +252,32 @@ function initFeedPosts(root) {
       const btn = form.querySelector(".react-btn");
       const wrap = form.closest(".react-wrap");
       const summaryEl = wrap?.querySelector(".react-summary");
+      const post = wrap?.closest(".post");
       if (!btn || !summaryEl) return;
       try {
         const resp = await fetch(form.action, {
           method: "POST",
           body: new FormData(form),
           headers: { "X-Requested-With": "XMLHttpRequest" },
+          credentials: "same-origin",
         });
-        if (!resp.ok) return;
+        if (!resp.ok) {
+          form.submit();
+          return;
+        }
         const data = await resp.json();
         summaryEl.innerHTML = renderReactionSummary(data.summary);
         wrap.querySelectorAll(".react-btn").forEach(b => {
           b.classList.toggle("mine", b.dataset.emoji === data.emoji && data.mine);
         });
         closeAllMenus();
-      } catch (_) { /* fall back: submit normally on next click if fetch failed */ }
+        if (post) {
+          post.classList.add("post-active");
+          post.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+      } catch (_) {
+        form.submit();
+      }
     });
   });
   scope.querySelectorAll("[data-feed-scroll-save]").forEach(form => {
