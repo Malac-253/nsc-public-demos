@@ -128,6 +128,25 @@ def split_malachi_lodging(expense: Expense, members: list[Membership]) -> tuple[
 split_by_lodging = split_malachi_lodging  # backwards-compatible alias
 
 
+def malachi_lodging_share_note(member: Membership, trip: Trip) -> str:
+    """One-line explanation of this person's Airbnb share (shown on their receipt)."""
+    att = Attendance.objects.filter(trip=trip, member=member).first()
+    total_nights = max((trip.end_date - trip.start_date).days, 1)
+    nights = att.nights() if att else total_nights
+    cap, private_bath = _lodging_room_for(member, trip)
+
+    stay = f"{nights} nights" if nights < total_nights else "Full trip"
+    if private_bath:
+        room = "private bathroom"
+    elif cap >= 4:
+        room = "bunk room"
+    elif cap >= 3:
+        room = "shared room"
+    else:
+        room = "private room"
+    return f"{stay} · {room}"
+
+
 def split_by_nights(expense: Expense, members: list[Membership]) -> tuple[dict[int, Decimal], str]:
     trip = expense.trip
     att = {a.member_id: a for a in Attendance.objects.filter(trip=trip)}

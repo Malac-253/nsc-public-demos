@@ -25,7 +25,9 @@
   <div class="divider"></div>
   <p class="muted" style="font-size:12.5px;margin-bottom:8px"><em>{{ exp.split_note }}</em></p>
   {% if my_share is not None %}
-  <p style="font-size:13.5px;margin-bottom:10px">Your share: <strong>${{ my_share }}</strong></p>
+  <p style="font-size:13.5px;margin-bottom:10px">Your share: <strong>${{ my_share }}</strong>
+    {% if my_share_note %}<span class="muted" style="display:block;font-size:12px;margin-top:4px;font-style:italic">{{ my_share_note }}</span>{% endif %}
+  </p>
   {% elif excluded %}
   <p class="muted" style="font-size:13px;margin-bottom:10px">You're not on this one.</p>
   {% endif %}

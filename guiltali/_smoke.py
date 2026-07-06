@@ -119,8 +119,11 @@ exp = Expense.objects.filter(trip=trip, title="Smoke pretzels").first()
 if exp:
     r = c.get(f"/budget/{exp.id}/")
     check("expense detail page", r.status_code == 200 and b"Smoke pretzels" in r.content)
-    r = c.get(f"/budget/receipt/{Membership.objects.get(user__username='malachi', party=trip.party).id}/")
-    check("my receipt with owe section", r.status_code == 200 and b"Who you owe" in r.content)
+r = c.get(f"/budget/receipt/{Membership.objects.get(user__username='malachi', party=trip.party).id}/")
+check("my receipt with owe section", r.status_code == 200 and b"Who you owe" in r.content)
+km = Membership.objects.get(party=trip.party, user__username="kayla")
+r = c_kayla.get(f"/budget/receipt/{km.id}/")
+check("kayla receipt shows split note", r.status_code == 200 and b"3 nights" in r.content and b"bunk room" in r.content)
 
 # simplify debts toggle (admin)
 if trip.simplify_debts:
@@ -347,7 +350,23 @@ check("info page link saved", page.link_url == "https://example.com/recipe")
 r = c.get("/info/tools/picker/")
 check("picker tool renders", r.status_code == 200 and b"Spin" in r.content)
 
+# --- party: admin sees last login, members don't ---
+r = c.get("/party/")
+check("admin sees last login on party", b"Last login" in r.content or b"Never logged in" in r.content)
+r = c_kayla.get("/party/")
+check("member party page has no login hints", b"Last login" not in r.content and b"Never logged in" not in r.content)
+
 if Expense.objects.filter(trip=trip).exists():
+    n_before = Expense.objects.filter(trip=trip).count()
+    r = c_kayla.get("/budget/")
+    check("member budget has no wipe UI", b"Wipe all expenses" not in r.content)
+    r = c_kayla.post("/budget/", {"action": "clear_all_expenses", "confirm": "DELETE ALL"})
+    check("member blocked from clearing expenses", r.status_code == 404
+          and Expense.objects.filter(trip=trip).count() == n_before)
+    c_clarence = client_for("clarence")
+    r = c_clarence.post("/budget/", {"action": "clear_all_expenses", "confirm": "DELETE ALL"})
+    check("moderator blocked from clearing expenses", r.status_code == 404
+          and Expense.objects.filter(trip=trip).count() == n_before)
     r = c.post("/budget/", {"action": "clear_all_expenses", "confirm": "DELETE ALL"})
     check("admin can clear all expenses", r.status_code == 302 and not Expense.objects.filter(trip=trip).exists())
 

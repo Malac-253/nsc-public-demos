@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
 {% block title %}Party{% endblock %}
 {% block extra_css %}
 .member{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);color:var(--ink)}
@@ -9,6 +9,7 @@
 .member .av img{width:38px;height:38px;object-fit:contain;animation:iconPulse 2.8s ease-in-out infinite}
 .member .nm{font-weight:700;font-size:15px;line-height:1.25}
 .member .subline{font-size:12px;color:var(--muted);margin-top:1px}
+.member .login-hint{font-size:11px;color:var(--brown);margin-top:3px}
 .member .chev{color:var(--muted);font-size:18px;flex:none;margin-left:8px}
 .tnote{font-size:11.5px;color:var(--brown);background:var(--amber-soft);border-radius:8px;
   padding:4px 8px;margin-top:4px;display:inline-block}
@@ -35,6 +36,15 @@
         {% if r.m.role != 'member' %} · <strong>{{ r.m.get_role_display|lower }}</strong>{% endif %}
       </div>
       {% if r.travel_note %}<span class="tnote">{{ r.travel_note }}</span>{% endif %}
+      {% if is_admin %}
+      <div class="login-hint">
+        {% if r.last_login %}
+          Last login · {{ r.last_login|naturaltime }} <span style="color:var(--muted)">({{ r.last_login|date:"M j, g:i A" }})</span>
+        {% else %}
+          Never logged in
+        {% endif %}
+      </div>
+      {% endif %}
     </span>
     <span class="chev">›</span>
   </a>

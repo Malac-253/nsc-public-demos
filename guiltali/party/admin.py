@@ -54,6 +54,7 @@ class PollAdmin(admin.ModelAdmin):
 class ExpenseShareInline(admin.TabularInline):
     model = models.ExpenseShare
     extra = 0
+    fields = ("member", "amount", "excluded", "note")
 
 
 @admin.register(models.Expense)

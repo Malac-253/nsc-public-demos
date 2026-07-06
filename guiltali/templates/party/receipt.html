@@ -13,13 +13,16 @@
 .receipt .meta{text-align:center;font-size:11px;color:var(--muted);margin-bottom:12px}
 .rrow{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:12.5px}
 .rrow.you-paid{background:#e8f0fe;border-radius:6px;padding:7px 8px;margin:3px -4px;border-bottom:none}
+.rrow.you-paid .t .exp-title{color:#1a56db}
 .rrow.you-paid .t,.rrow.you-paid .a{color:#1a56db;font-weight:800}
 .rrow.you-paid .t .tags{color:#3b6fc9;font-weight:600}
-.rrow .t{flex:1;min-width:0}
+.rrow .t{flex:1;min-width:0;color:var(--ink)}
+.rrow .t .exp-title{display:block;font-weight:800;font-size:13px;color:var(--ink);line-height:1.3}
 .rrow .t .tags{font-size:10px;color:var(--muted)}
 .rrow .t .you-tag{font-size:10px;font-weight:800;color:#1a56db;text-transform:uppercase;letter-spacing:.3px}
-.rrow .a{white-space:nowrap;font-weight:700}
-.rtotal{display:flex;justify-content:space-between;padding-top:10px;font-family:var(--px);font-size:13px}
+.rrow .split-note{font-size:11px;color:var(--brown);margin-top:3px;font-style:italic}
+.rrow .a{white-space:nowrap;font-weight:700;color:var(--ink)}
+.rtotal{display:flex;justify-content:space-between;padding-top:10px;font-family:var(--px);font-size:13px;color:var(--ink);font-weight:800}
 .owe-line{font-size:12.5px;padding:6px 0;border-bottom:1px dashed var(--line)}
 .owe-line:last-child{border-bottom:none}
 .owe-line .sub{font-size:11px;color:var(--muted);margin-top:3px}
@@ -32,13 +35,14 @@
   {% for r in rows %}
   <div class="rrow{% if r.is_yours %} you-paid{% endif %}">
     <span class="t">
-      {{ r.exp.title }}
+      <span class="exp-title">{{ r.exp.title }}</span>
       <div class="tags">
         {% if r.is_yours %}<span class="you-tag">You paid</span> · {% endif %}
         {{ r.exp.payer.shown_name }}{% if r.exp.payer.real_name_sub %} <span style="opacity:.7">({{ r.exp.payer.real_name_sub }})</span>{% endif %}{% if r.exp.incurred_on %} · {{ r.exp.incurred_on|date:"M j" }}{% endif %}
         {% if scope == 'group' and r.my_share and not r.is_yours %} · your share ${{ r.my_share }}{% endif %}
         {% for t in r.tag_labels %} · {{ t }}{% endfor %}
       </div>
+      {% if r.share_note %}<div class="split-note">{{ r.share_note }}</div>{% endif %}
     </span>
     <span class="a">${{ r.amount }}</span>
   </div>
@@ -63,7 +67,7 @@
   <div class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Suggested payments</div>
   {% for p in owe_info.simplified %}
   <div class="owe-line">
-    Pay <strong>{{ p.to_member.shown_name }}</strong> <strong>${{ p.amount }}</strong>
+    Pay <strong>{{ p.to_member.roster_name }}</strong> <strong>${{ p.amount }}</strong>
     <div class="sub">Fewest-transfer settlement — paying this helps square the group.</div>
   </div>
   {% endfor %}
@@ -75,7 +79,7 @@
   <div class="muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Why (your shares)</div>
   {% for block in owe_info.itemized %}
   <div class="owe-line">
-    <strong>${{ block.amount }}</strong> toward {{ block.to_member.shown_name }} from:
+    <strong>${{ block.amount }}</strong> toward {{ block.to_member.roster_name }} from:
     <div class="sub">
       {% for ln in block.lines %}{{ ln.title }} (${{ ln.amount }}){% if not forloop.last %} · {% endif %}{% endfor %}
     </div>
@@ -86,7 +90,7 @@
   {% if owe_info.simplified %}
   {% for p in owe_info.simplified %}
   <div class="owe-line">
-    Pay <strong>{{ p.to_member.shown_name }}</strong> <strong>${{ p.amount }}</strong>
+    Pay <strong>{{ p.to_member.roster_name }}</strong> <strong>${{ p.amount }}</strong>
     {% for block in owe_info.itemized %}{% if block.to_member.id == p.to_member.id %}
     <div class="sub">From: {% for ln in block.lines %}{{ ln.title }} (${{ ln.amount }}){% if not forloop.last %} · {% endif %}{% endfor %}</div>
     {% endif %}{% endfor %}

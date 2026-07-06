@@ -415,6 +415,10 @@ class ExpenseShare(models.Model):
     member = models.ForeignKey(Membership, on_delete=models.CASCADE, related_name="expense_shares")
     amount = models.DecimalField(max_digits=9, decimal_places=2, default=Decimal("0"))
     excluded = models.BooleanField(default=False)
+    note = models.CharField(
+        max_length=300, blank=True,
+        help_text="Plain-language note for this person on this expense (shown on their receipt).",
+    )
 
     class Meta:
         unique_together = [("expense", "member")]

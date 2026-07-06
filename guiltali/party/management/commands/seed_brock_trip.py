@@ -31,7 +31,7 @@ from party.models import (
     TripPhoto,
     UserProfile,
 )
-from party.splits import preview_split
+from party.splits import malachi_lodging_share_note, preview_split
 
 # (username, display, role, plus_one_of_username, icon, color)
 PEOPLE = [
@@ -305,8 +305,12 @@ class Command(BaseCommand):
         shares, note = preview_split(exp, member_list, Expense.SPLIT_MALACHI)
         exp.split_note = note
         exp.save(update_fields=["split_note"])
+        members_by_id = {m.id: m for m in member_list}
         ExpenseShare.objects.bulk_create([
-            ExpenseShare(expense=exp, member_id=mid, amount=amt)
+            ExpenseShare(
+                expense=exp, member_id=mid, amount=amt,
+                note=malachi_lodging_share_note(members_by_id[mid], trip),
+            )
             for mid, amt in shares.items()
         ])
         self.stdout.write(f"Seeded {AIRBNB_TITLE} (${AIRBNB_AMOUNT}, Malachi's split).")

@@ -128,8 +128,8 @@
 
 {% if me.role == 'admin' and expense_rows %}
 <div class="card" style="border-color:var(--burgundy-soft)">
-  <h2><img src="{% static 'img/icons/bark.png' %}" alt="">Reset expenses <span class="sub">one-time cleanup</span></h2>
-  <p class="muted" style="font-size:13px;margin-bottom:10px">Remove every expense on this trip so you can enter real numbers. This cannot be undone — download a backup first if you want a copy.</p>
+  <h2><img src="{% static 'img/icons/bark.png' %}" alt="">Reset expenses <span class="sub">admin only</span></h2>
+  <p class="muted" style="font-size:13px;margin-bottom:10px">Remove every expense on this trip so you can start fresh. This cannot be undone — download a backup first if you want a copy.</p>
   <form method="post" onsubmit="return confirm('Delete ALL expenses on this trip?')">
     {% csrf_token %}
     <input type="hidden" name="action" value="clear_all_expenses">
@@ -137,7 +137,6 @@
     <input type="text" name="confirm" placeholder="DELETE ALL" autocomplete="off">
     <button class="btn danger small" type="submit" style="margin-top:10px" data-snd="snap">Wipe all expenses</button>
   </form>
-  <p class="muted" style="font-size:11px;margin-top:8px">Or set env var <code>CLEAR_EXPENSES_ONCE=1</code> on Render for one deploy, then remove it.</p>
 </div>
 {% endif %}
 {% endblock %}

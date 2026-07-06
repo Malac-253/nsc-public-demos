@@ -665,6 +665,7 @@ def budget_detail(request, expense_id: int):
         "exp": exp,
         "share_rows": share_rows,
         "my_share": my_share_obj.amount if my_share_obj and not my_share_obj.excluded else None,
+        "my_share_note": my_share_obj.note if my_share_obj and not my_share_obj.excluded else "",
         "excluded": my_share_obj.excluded if my_share_obj else False,
         "tag_labels": [TAG_MAP.get(t, t) for t in (exp.tags or [])],
         "can_edit": _can_edit_expense(me, exp),
@@ -1039,23 +1040,26 @@ def receipt(request, member_id: int | None = None):
         my_share = None
         is_yours = False
         if scope == "member":
-            share = next((s.amount for s in exp.shares.all() if s.member_id == target.id), None)
-            if share is None or share == 0:
+            share_obj = next((s for s in exp.shares.all() if s.member_id == target.id), None)
+            if not share_obj or share_obj.amount == 0:
                 continue
-            amount = share
+            amount = share_obj.amount
             is_yours = exp.payer_id == target.id
+            share_note = share_obj.note
         else:
             amount = exp.amount
             share = next((s for s in exp.shares.all() if s.member_id == me.id and not s.excluded), None)
             if share:
                 my_share = share.amount
             is_yours = exp.payer_id == me.id
+            share_note = share.note if share else ""
         total += amount
         rows.append({
             "exp": exp,
             "amount": amount,
             "my_share": my_share,
             "is_yours": is_yours,
+            "share_note": share_note if scope == "member" else (share_note if my_share else ""),
             "tag_labels": [TAG_MAP.get(t, t) for t in (exp.tags or [])],
         })
     members = trip.party.memberships.exclude(is_ai=True).all() if me.role == Membership.ROLE_ADMIN else None
@@ -1870,14 +1874,17 @@ def party(request):
         depart = (a.depart if a and a.depart else trip.end_date)
         start_idx = max((arrive - trip.start_date).days, 0)
         end_idx = min((depart - trip.start_date).days, day_count - 1)
-        rows.append({
+        row = {
             "m": m,
             "arrive": arrive,
             "depart": depart,
             "start_pct": int(start_idx / day_count * 100),
             "width_pct": int((end_idx - start_idx + 1) / day_count * 100),
             "travel_note": m.travel_note if m.can_see_travel_note(me) else "",
-        })
+        }
+        if me.role == Membership.ROLE_ADMIN:
+            row["last_login"] = m.user.last_login
+        rows.append(row)
     return render(request, "party/party.html", {"rows": rows, "is_admin": me.role == Membership.ROLE_ADMIN})
 
 
